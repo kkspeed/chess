@@ -247,5 +247,29 @@ class TestMove(unittest.TestCase):
             ...X....."""), visualize_moves(moves))
 
 
+class TestApplyMoves(unittest.TestCase):
+    def test_apply_killer_move(self):
+        board = Board()
+        board.parse_from_string(textwrap.dedent("""\
+            .........
+            ..车...車.."""))
+        move = KillMove(board.pieces[0], Point(1, 6), board.pieces[1])
+        new_board = move.apply_move(board)
+        self.assertEqual(str(new_board), textwrap.dedent("""\
+            .........
+            ......车.."""))
+
+    def test_apply_move(self):
+        board = Board()
+        board.parse_from_string(textwrap.dedent("""\
+            .炮...
+            ....."""))
+        move = Move(board.pieces[0], Point(0, 3))
+        new_board = move.apply_move(board)
+        self.assertEqual(str(new_board), textwrap.dedent("""\
+            ...炮.
+            ....."""))
+
+
 if __name__ == "__main__":
     unittest.main()

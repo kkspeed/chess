@@ -71,6 +71,10 @@ class Piece:
             return 兵(pos, Player.black)
         raise NotImplementedError
 
+    def __eq__(self, other):
+        return self.color == other.color and self.pos == other.pos and\
+            str(self.__class__) == str(other.__class__)
+
 
 class 帅(Piece):
     def possible_positions(self):
@@ -343,6 +347,7 @@ class KillMove(Move):
 
     def apply_move(self, board: Board) -> Board:
         result = copy.deepcopy(board)
+        print("Kill: ", self.killed)
         result.pieces.remove(self.killed)
         return super().apply_move(result)
 
