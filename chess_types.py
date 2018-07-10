@@ -365,3 +365,27 @@ def visualize_moves(moves: List[Move]) -> str:
     for move in moves:
         plot_move(move, result)
     return '\n'.join(map(''.join, result))
+
+
+class GameState:
+    def __init__(self, board, player, steps=0):
+        self.board = board
+        self.player = player
+        self.steps = steps
+
+    def is_win(self, player):
+        other = Player.red if player == Player.black else Player.black
+        win = True
+        for piece in self.board.pieces:
+            if type(piece) is 帅 and piece.color == other:
+                win = False
+        return win
+
+    def winner(self):
+        # Draw when steps > 200
+        if self.steps > 200:
+            return -1
+        for p in [Player.red, Player.black]:
+            if self.is_win(p):
+                return p
+        return -1
