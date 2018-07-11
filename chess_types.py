@@ -75,6 +75,9 @@ class Piece:
         return self.color == other.color and self.pos == other.pos and\
             str(self.__class__) == str(other.__class__)
 
+    def __hash__(self):
+        return hash((self.color, self.pos, str(self.__class__)))
+
 
 class 帅(Piece):
     def possible_positions(self):
