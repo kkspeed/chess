@@ -94,15 +94,39 @@ class SimpleEncoder:
         return self.gen_move(state, move_fig, fig_num, move_dir)
 
     def gen_move(self, state: GameState, move_fig: str, fig_num: int, move_dir: int) -> Move:
-        candidates = sorted(filter(lambda piece: piece.color == state.player, state.board.pieces))
+        candidates = sorted(
+            filter(lambda piece: piece.color == state.player, state.board.pieces))
         encounter = 0
         for piece in candidates:
-            if str(piece.__class__) == move_fig:
+            if str(piece.__class__.__name__) == move_fig:
                 if encounter == fig_num:
-                    target = piece.possible_positions[move_dir]
+                    target = piece.possible_positions()[move_dir]
                     return piece.calc_move(state.board, target)
                 encounter += 1
-        raise ValueError("Should not reach") 
+        raise ValueError("Should not reach")
+
+    def move_mask(self, state: GameState) -> List[int]:
+        result = [0] * TOTAL_MOVES
+        candidates = sorted(
+            filter(lambda piece: piece.color == state.player, state.board.pieces))
+        d = collections.defaultdict(list)
+        for piece in candidates:
+            d[str(piece.__class__.__name__)].append(piece)
+            d[str(piece.__class__.__name__)].sort()
+        start = 0
+        for name, step in MOVE:
+            if name in d:
+                inc = 0
+                for piece in d[name]:
+                    for pos in piece.possible_positions():
+                        next_move = piece.calc_move(state.board, pos)
+                        if pos.row >= 0 and pos.row < state.board.height and pos.col >= 0 \
+                            and pos.col < state.board.width and next_move is not None:
+                            result[start + inc] = 1
+                        inc += 1
+                del d[name]
+            start += step
+        return result
 
     def point_to_index(self, point):
         return point.row * 9 + point.col

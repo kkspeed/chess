@@ -206,7 +206,7 @@ class 车(Piece):
         positions = set(Point(self.pos.row, col) for col in range(0, 9)) | \
             set(Point(row, self.pos.col) for row in range(0, 10))
         positions.remove(self.pos)
-        return positions
+        return list(sorted(positions))
 
     def calc_move(self, board, target):
         if self.pos.row == target.row:
@@ -236,7 +236,7 @@ class 炮(Piece):
         positions = set(Point(self.pos.row, col) for col in range(0, 9)) | \
             set(Point(row, self.pos.col) for row in range(0, 10))
         positions.remove(self.pos)
-        return positions
+        return list(sorted(positions))
 
     def calc_move(self, board, target):
         piece = board.piece_at(target)
