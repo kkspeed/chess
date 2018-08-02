@@ -75,6 +75,11 @@ class Piece:
         return self.color == other.color and self.pos == other.pos and\
             str(self.__class__) == str(other.__class__)
 
+    def __lt__(self, other):
+        if self.pos != other.pos:
+            return self.pos < other.pos
+        return str(self.__class__) < str(other.__class__)
+
     def __hash__(self):
         return hash((self.color, self.pos, str(self.__class__)))
 
@@ -275,22 +280,20 @@ class 炮(Piece):
 
 class 兵(Piece):
     def possible_positions(self):
-        过河 = (self.pos.row >= 5 and self.color == Player.black) or\
-            (self.pos.row <= 4 and self.color == Player.red)
         delta = 1 if self.color == Player.black else -1
-        if 过河:
-            return [
-                Point(self.pos.row + delta, self.pos.col),
-                Point(self.pos.row, self.pos.col + 1),
-                Point(self.pos.row, self.pos.col - 1)]
-        else:
-            return [
-                Point(self.pos.row + delta, self.pos.col)]
+        return [
+            Point(self.pos.row + delta, self.pos.col),
+            Point(self.pos.row, self.pos.col + 1),
+            Point(self.pos.row, self.pos.col - 1)]
 
     def __str__(self):
         return "兵" if self.color == Player.red else "卒"
 
     def calc_move(self, board, target):
+        过河 = (self.pos.row >= 5 and self.color == Player.black) or\
+            (self.pos.row <= 4 and self.color == Player.red)
+        if not 过河 and target.col != self.pos.col:
+            return None
         piece = board.piece_at(target)
         if piece is None:
             return Move(self, target)
