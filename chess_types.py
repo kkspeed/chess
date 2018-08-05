@@ -374,7 +374,7 @@ def visualize_moves(moves: List[Move]) -> str:
 
 
 class GameState:
-    def __init__(self, board, player, steps=0):
+    def __init__(self, board: Board, player: Player, steps=0):
         self.board = board
         self.player = player
         self.steps = steps

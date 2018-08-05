@@ -1,4 +1,4 @@
-from learn import *
+from encoder import *
 from chess_types import *
 
 import unittest
@@ -19,23 +19,13 @@ class EncoderTest(unittest.TestCase):
             ......车..
             .........
             ....帅...."""))
-        state = GameState(b, Player.red, 12)
         encoder = SimpleEncoder()
-        mat = encoder.encode(state)
-        self.assertTrue(len(mat) == 34)
-        self.assertTrue(mat[0] == 9 * 9 + 4)
-        self.assertTrue(mat[1] == 0 * 9 + 4)
-        # Steps:
-        self.assertTrue(mat[33] == 12)
-        # Player:
-        self.assertTrue(mat[32] == 1)
-
-        decoded_state = encoder.decode(mat)
-        self.assertTrue(decoded_state.player == state.player)
-        self.assertTrue(len(decoded_state.board.pieces) == 5)
-        self.assertTrue(decoded_state.steps == state.steps)
-        self.assertTrue(set(decoded_state.board.pieces)
-                        == set(state.board.pieces))
+        mat = encoder.encode(b)
+        self.assertTrue(np.shape(mat) == (10, 9))
+        decoded_board = encoder.decode(mat)
+        self.assertTrue(len(decoded_board.pieces) == 5)
+        self.assertTrue(set(decoded_board.pieces)
+                        == set(b.pieces))
 
     def test_move_selection(self):
         b = Board()

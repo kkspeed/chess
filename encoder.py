@@ -23,6 +23,40 @@ DEFAULT = {
     '包': [-1, -1]
 }
 
+PIECE_VALUES = {
+  '帅': 1, 
+  '将': -1,
+  '士': 2,
+  '仕': -2,
+  '相': 3,
+  '象': -3,
+  '马': 4,
+  '馬': -4,
+  '车': 5,
+  '車': -5,
+  '兵': 6,
+  '卒': -6,
+  '炮': 7,
+  '包': -7,
+}
+
+PIECE_VALUES_REV = {
+   1: '帅' ,
+   -1: '将',
+   2: '士',
+   -2: '仕',
+   3: '相',
+   -3: '象',
+   4: '马',
+   -4: '馬',
+   5: '车',
+   -5: '車',
+   6: '兵',
+   -6: '卒',
+   7: '炮',
+   -7: '包',
+}
+
 MOVE = [
  ('帅', 4),
  ('士', 4),
@@ -45,35 +79,20 @@ MOVE = [
 TOTAL_MOVES = sum([m[1] for m in MOVE])
 
 class SimpleEncoder:
-    def encode(self, state):
-        d = copy.deepcopy(DEFAULT)
-        for p in state.board.pieces:
-            name = str(p)
-            i = d[name].index(-1)
-            d[name][i] = self.point_to_index(p.pos)
-            d[name].sort()
-        result = []
-        for key in BOARD:
-            result.extend(d[key])
-        result.append(1 if state.player == Player.red else 0)
-        result.append(state.steps)
-        return np.array(result)
+    def encode(self, board: Board):
+        result = np.zeros((board.height, board.width))
+        for piece in board.pieces:
+            result[piece.pos.row][piece.pos.col] = PIECE_VALUES[str(piece)]
+        return result
 
-    def decode(self, array) -> GameState:
+    def decode(self, array) -> Board:
         board = Board()
-        index = 0
-        for name in BOARD:
-            for _ in range(len(DEFAULT[name])):
-                elem = array[index]
-                if elem >= 0:
-                    col = elem % 9
-                    row = elem // 9
-                    piece = Piece.from_name(Point(row, col), name)
-                    board.pieces.append(piece)
-                index += 1
-
-        player = Player.red if array[-2] == 1 else Player.black
-        return GameState(board, player, array[-1])
+        for row in range(len(array)):
+            for col in range(len(array[0])):
+                if array[row][col] in PIECE_VALUES_REV:
+                    ch = PIECE_VALUES_REV[array[row][col]]
+                    board.pieces.append(Piece.from_name(Point(row, col), ch))
+        return board
 
     def decode_move(self, state: GameState, index: int) -> Move:
         start = 0
