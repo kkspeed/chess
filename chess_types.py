@@ -394,4 +394,4 @@ class GameState:
         for p in [Player.red, Player.black]:
             if self.is_win(p):
                 return p
-        return -1
+        return None

@@ -80,17 +80,17 @@ TOTAL_MOVES = sum([m[1] for m in MOVE])
 
 class SimpleEncoder:
     def encode(self, board: Board):
-        result = np.zeros((board.height, board.width))
+        result = np.zeros((1, board.height, board.width))
         for piece in board.pieces:
-            result[piece.pos.row][piece.pos.col] = PIECE_VALUES[str(piece)]
+            result[0][piece.pos.row][piece.pos.col] = PIECE_VALUES[str(piece)]
         return result
 
     def decode(self, array) -> Board:
         board = Board()
         for row in range(len(array)):
             for col in range(len(array[0])):
-                if array[row][col] in PIECE_VALUES_REV:
-                    ch = PIECE_VALUES_REV[array[row][col]]
+                if array[0][row][col] in PIECE_VALUES_REV:
+                    ch = PIECE_VALUES_REV[array[0][row][col]]
                     board.pieces.append(Piece.from_name(Point(row, col), ch))
         return board
 
