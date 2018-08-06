@@ -10,12 +10,12 @@ BOARD_HEIGHT = 10
 class ExpCollector:
     def __init__(self):
         self.inputs = []
-        self.predictions = []
+        self.actions = []
         self.rewards = []
 
-    def record(self, input, prediction):
+    def record(self, input, action):
         self.inputs.append(input)
-        self.inputs.append(prediction)
+        self.actions.append(action)
         
     def assign_reward(self, reward):
         self.rewards = [reward] * len(self.inputs)
@@ -43,11 +43,12 @@ class Agent:
                 piece.pos.row = top - piece.pos.row
             encoded = self.encoder.encode(game_state.board)
             predicted = self.model.predict(encoded)
-            self.collector.record(encoded, predicted)
             move = self.choose(predicted, game_state)
             if move is None:
                 return None
-            new_board = move.apply_move(game_state.board)
+            m, idx = move
+            self.collector.record(encoded, idx)
+            new_board = m.apply_move(game_state.board)
             for piece in new_board.pieces:
                 piece.color = Player.black if piece.color == Player.red else Player.red
                 piece.pos.row = top - piece.pos.row
@@ -56,11 +57,12 @@ class Agent:
         else:
             encoded = self.encoder.encode(game_state.board)
             predicted = self.model.predict(encoded)
-            self.collector.record(encoded, predicted)
             move = self.choose(predicted, game_state)
             if move is None:
                 return None
-            new_board = move.apply_move(game_state.board)
+            m, idx = move
+            self.collector.record(encoded, idx)
+            new_board = m.apply_move(game_state.board)
             state = GameState(new_board, Player.black, game_state.steps + 1)
             return state
 
@@ -75,7 +77,7 @@ class Agent:
             move = self.encoder.decode_move(state, idx)
             if move is not None and move.pos.row >= 0 and move.pos.row < state.board.height \
                 and move.pos.col < state.board.width and move.pos.col >= 0:
-                return move
+                return move, idx
         return None
 
 def clip_probs(original_probs):
