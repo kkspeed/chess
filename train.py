@@ -60,11 +60,11 @@ def train(epoch, model = None):
 	return new_model
 
 if __name__ == "__main__":
-	last_model = 'model_1.h5'
-	for epoch in range(2, 10):
+	last_model = 'model_2.h5'
+	for epoch in range(3, 10):
 		for round in range(100):
 	 		print("===\n\nPlaying epoch: %d, round %d\n\n===" % (epoch, round))
 	 		agent.self_play(str(epoch), round, last_model, last_model)
 		last_model = train(str(epoch), last_model)
-	test('model_2.h5', 'model_1.h5')
-	# debug_play("model_3.h5", "model_1.h5")
+	test('model_9.h5', 'model_1.h5')
+	# debug_play("model_2.h5", "model_1.h5")

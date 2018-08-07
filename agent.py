@@ -152,19 +152,20 @@ def self_play(episode, round, model1 = None, model2 = None):
     if model2:
         agent2.model.load_weights(model2)
     winner = game_play(agent1, agent2)
+    score = 600 - len(collector1.inputs)
     if winner == Player.black:
         print("Black win")
-        agent1.finish(-1)
-        agent2.finish(1)
-        collector2.rewards[-1] = 2
+        agent1.finish(-score)
+        agent2.finish(score)
+        collector2.rewards[-1] = 2 * score
     if winner == Player.red:
         print("Red win")
-        agent1.finish(1)
-        collector1.rewards[-1] = 2
-        agent2.finish(-1)
+        agent1.finish(score)
+        collector1.rewards[-1] = 2 * score
+        agent2.finish(-score)
     if winner == -1:
-        agent1.finish(-1)
-        agent2.finish(-1)
+        agent1.finish(-600)
+        agent2.finish(-600)
         print("It's draw %s - %d" % (episode, round))
     file_path = os.path.join(episode, "%s_1.h5" % round)
     h51 = h5py.File(file_path, 'w')
