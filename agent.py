@@ -1,3 +1,5 @@
+import sys
+import os
 import numpy as np
 import copy
 import encoder
@@ -88,6 +90,10 @@ class Agent:
                 return move, idx
         return None
 
+    def train(self, exp: ExpCollector):
+        target_vectors = prepare_experience_data(exp)
+        self.model.fit(exp.inputs, target_vectors, batch_size=10, epochs=1, shuffle='batch')
+
 def clip_probs(original_probs):
     min_p = 1e-5
     max_p = 1 - min_p
@@ -95,11 +101,16 @@ def clip_probs(original_probs):
     clipped_probs = clipped_probs / np.sum(clipped_probs)
     return clipped_probs 
 
-def self_play():
-    collector1 = ExpCollector()
-    collector2 = ExpCollector()
-    agent1 = Agent(Player.red, collector1)
-    agent2 = Agent(Player.black, collector2)
+def prepare_experience_data(experience: ExpCollector):
+    experience_size = len(experience.rewards)
+    target_vectors = np.zeros((experience_size, encoder.TOTAL_MOVES))
+    for i in range(experience_size):
+        action = experience.actions[i]
+        reward = experience.rewards[i]
+        target_vectors[i][action] = reward 
+    return target_vectors  
+
+def game_play(agent1, agent2):
     board = Board()
     board.parse_from_string(textwrap.dedent("""\
         車馬象仕将仕象馬車
@@ -116,7 +127,7 @@ def self_play():
     winner = None
     
     while game.winner() is None:
-        print("Playing: ", game.steps)
+        # print("Playing: ", game.steps)
         game = agent1.select_move(game)
         if game is None:
             winner = Player.black
@@ -126,22 +137,45 @@ def self_play():
             winner = Player.red
             break
     if winner is None:
-        winner = game.winner()
+        return game.winner()
+    return winner
+
+def self_play(episode, round, model1 = None, model2 = None):
+    if not os.path.exists(episode):
+        os.mkdir(episode)
+    collector1 = ExpCollector()
+    collector2 = ExpCollector()
+    agent1 = Agent(Player.red, collector1)
+    if model1:
+        agent1.model.load_weights(model1)
+    agent2 = Agent(Player.black, collector2)
+    if model2:
+        agent2.model.load_weights(model2)
+    winner = game_play(agent1, agent2)
     if winner == Player.black:
         print("Black win")
         agent1.finish(-1)
         agent2.finish(1)
+        collector2.rewards[-1] = 2
     if winner == Player.red:
         print("Red win")
         agent1.finish(1)
+        collector1.rewards[-1] = 2
         agent2.finish(-1)
-    if winner != -1:
-        h51 = h5py.File('play_1.h5', 'w')
-        collector1.save(h51)
-        h51.close()
-        h52 = h5py.File('play_2.h5', 'w')
-        collector2.save(h52)
-        h52.close()
+    if winner == -1:
+        agent1.finish(-1)
+        agent2.finish(-1)
+        print("It's draw %s - %d" % (episode, round))
+    file_path = os.path.join(episode, "%s_1.h5" % round)
+    h51 = h5py.File(file_path, 'w')
+    collector1.save(h51)
+    h51.close()
+    file_path = os.path.join(episode, "%s_2.h5" % round)
+    h52 = h5py.File(file_path, 'w')
+    collector2.save(h52)
+    h52.close()
 
 if __name__ == "__main__":
-    self_play()
+    episode = sys.argv[1]
+    for round in range(100):
+        self_play(episode, str(round))
