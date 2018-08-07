@@ -16,10 +16,10 @@ def create_model(input_shape, output_shape):
     model.add(Dense(128, activation='relu'))
     model.add(Dropout(rate=0.6))
     model.add(Dense(output_shape[0], activation='softmax'))
-    # model.summary() 
+    # model.summary()
     model.compile(loss='categorical_crossentropy',
-                  optimizer='sgd',
-                  metrics=['accuracy']) 
+                  optimizer='adam',
+                  metrics=['accuracy'])
     return model
 
 if __name__ == "__main__":

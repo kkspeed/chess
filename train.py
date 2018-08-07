@@ -14,7 +14,7 @@ def test(model1, model2):
 		agent2.model.load_weights(model2)
 	red = 0
 	black = 0
-	for i in range(200):
+	for i in range(20):
 		winner = agent.game_play(agent1, agent2)
 		if winner == Player.red:
 			red += 1
@@ -60,11 +60,12 @@ def train(epoch, model = None):
 	return new_model
 
 if __name__ == "__main__":
-	last_model = 'model_2.h5'
-	for epoch in range(3, 10):
+	last_model = None
+	for epoch in range(1, 100):
 		for round in range(100):
 	 		print("===\n\nPlaying epoch: %d, round %d\n\n===" % (epoch, round))
 	 		agent.self_play(str(epoch), round, last_model, last_model)
 		last_model = train(str(epoch), last_model)
-	test('model_9.h5', 'model_1.h5')
-	# debug_play("model_2.h5", "model_1.h5")
+	# test('model_10.h5', 'model_9.h5')
+    # for i in range(20):
+    #     debug_play("model_12.h5", "model_1.h5")

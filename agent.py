@@ -7,6 +7,7 @@ import textwrap
 import h5py
 from model import create_model
 from chess_types import GameState, Player, Move, Board, Point
+from keras.optimizers import SGD, Adam
 
 BOARD_WIDTH = 9
 BOARD_HEIGHT = 10
@@ -20,7 +21,7 @@ class ExpCollector:
     def record(self, input, action):
         self.inputs.append(input)
         self.actions.append(action)
-        
+
     def assign_reward(self, reward):
         self.rewards = [reward] * len(self.inputs)
 
@@ -81,7 +82,7 @@ class Agent:
 
     def choose(self, move_probs, state) -> Move:
         candidates = np.arange(0, encoder.TOTAL_MOVES)
-        ranked_moves = np.random.choice(candidates, 
+        ranked_moves = np.random.choice(candidates,
             len(candidates), replace=False, p=clip_probs(move_probs))
         for idx in ranked_moves:
             move = self.encoder.decode_move(state, idx)
@@ -91,15 +92,16 @@ class Agent:
         return None
 
     def train(self, exp: ExpCollector):
+        self.model.compile(optimizer=Adam(), loss=['categorical_crossentropy'])
         target_vectors = prepare_experience_data(exp)
-        self.model.fit(exp.inputs, target_vectors, batch_size=10, epochs=1, shuffle='batch')
+        self.model.fit(exp.inputs, target_vectors, batch_size=20, epochs=1, shuffle='batch')
 
 def clip_probs(original_probs):
-    min_p = 1e-5
+    min_p = 0.0001
     max_p = 1 - min_p
     clipped_probs = np.clip(original_probs, min_p, max_p)
     clipped_probs = clipped_probs / np.sum(clipped_probs)
-    return clipped_probs 
+    return clipped_probs
 
 def prepare_experience_data(experience: ExpCollector):
     experience_size = len(experience.rewards)
@@ -107,8 +109,8 @@ def prepare_experience_data(experience: ExpCollector):
     for i in range(experience_size):
         action = experience.actions[i]
         reward = experience.rewards[i]
-        target_vectors[i][action] = reward 
-    return target_vectors  
+        target_vectors[i][action] = reward
+    return target_vectors
 
 def game_play(agent1, agent2):
     board = Board()
@@ -125,7 +127,7 @@ def game_play(agent1, agent2):
         车马相士帅士相马车"""))
     game = GameState(board, Player.red)
     winner = None
-    
+
     while game.winner() is None:
         # print("Playing: ", game.steps)
         game = agent1.select_move(game)
@@ -164,8 +166,8 @@ def self_play(episode, round, model1 = None, model2 = None):
         collector1.rewards[-1] = 2 * score
         agent2.finish(-score)
     if winner == -1:
-        agent1.finish(-600)
-        agent2.finish(-600)
+        agent1.finish(-600000)
+        agent2.finish(-600000)
         print("It's draw %s - %d" % (episode, round))
     file_path = os.path.join(episode, "%s_1.h5" % round)
     h51 = h5py.File(file_path, 'w')
