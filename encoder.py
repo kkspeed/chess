@@ -87,8 +87,8 @@ class SimpleEncoder:
 
     def decode(self, array) -> Board:
         board = Board()
-        for row in range(len(array)):
-            for col in range(len(array[0])):
+        for row in range(len(array[0])):
+            for col in range(len(array[0][0])):
                 if array[0][row][col] in PIECE_VALUES_REV:
                     ch = PIECE_VALUES_REV[array[0][row][col]]
                     board.pieces.append(Piece.from_name(Point(row, col), ch))
@@ -122,7 +122,7 @@ class SimpleEncoder:
                     target = piece.possible_positions()[move_dir]
                     return piece.calc_move(state.board, target)
                 encounter += 1
-        raise ValueError("Should not reach")
+        return None
 
     def move_mask(self, state: GameState) -> List[int]:
         result = [0] * TOTAL_MOVES

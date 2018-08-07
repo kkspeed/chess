@@ -1,8 +1,12 @@
+import numpy as np
 import pygame
 import sys
+import h5py
 import textwrap
 from pygame.locals import *
 from chess_types import Board, Player
+from encoder import SimpleEncoder
+from agent import ExpCollector
 
 WHITE = (255, 255, 255)
 BOARD_COLOR = (0, 0, 0)
@@ -30,6 +34,8 @@ def draw_pieces(surface, font, board: Board):
         textrect.centerx = x
         textrect.centery = y
         surface.blit(text, textrect)
+    
+idx = 0
  
 if __name__ == "__main__":
     pygame.init()
@@ -51,12 +57,24 @@ if __name__ == "__main__":
     surface = pygame.display.set_mode((800, 600))
     pygame.display.set_caption("Visualize")
     surface.fill(WHITE);
+    collector = ExpCollector()
+    encoder = SimpleEncoder()
+    h5 = h5py.File(sys.argv[1], "r")
+    collector.load(h5)
     while True:
         surface.fill(WHITE)
+        board = encoder.decode(collector.inputs[idx])
         draw_chess_board(surface)
         draw_pieces(surface, font, board)
         for event in pygame.event.get():
             if event.type == QUIT:
                 pygame.quit()
                 sys.exit()
+            if event.type == KEYUP and event.key == K_RIGHT:
+                idx += 1
+                idx %= len(collector.inputs)
+            if event.type == KEYUP and event.key == K_LEFT:
+                idx += len(collector.inputs) - 1
+                idx %= len(collector.inputs)
+
         pygame.display.update()

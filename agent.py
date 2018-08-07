@@ -128,9 +128,11 @@ def self_play():
     if winner is None:
         winner = game.winner()
     if winner == Player.black:
+        print("Black win")
         agent1.finish(-1)
         agent2.finish(1)
     if winner == Player.red:
+        print("Red win")
         agent1.finish(1)
         agent2.finish(-1)
     if winner != -1:

@@ -388,8 +388,8 @@ class GameState:
         return win
 
     def winner(self):
-        # Draw when steps > 200
-        if self.steps > 200:
+        # Draw when steps > 600
+        if self.steps > 600:
             return -1
         for p in [Player.red, Player.black]:
             if self.is_win(p):
