@@ -50,18 +50,15 @@ def train(epoch, model = None):
 	for f in os.listdir(epoch):
 		path = os.path.join(epoch, f)
 		print('train on ', path)
-		h5 = h5py.File(path, 'r')
-		exp = agent.ExpCollector()
-		exp.load(h5)
-		poly_agent.train(exp)
-		h5.close()
+                with h5py.File(path, 'r') as h5:
+                    exp = agent.ExpCollector()
+                    exp.load(h5)
+                    poly_agent.train(exp)
 	new_model = "model_%s.h5" % epoch
 	poly_agent.model.save_weights(new_model)
 	return new_model
 
 if __name__ == "__main__":
-	import tensorflow as tf
-	tf.device("/gpu:0")
 	last_num = None
 	if len(sys.argv) >= 2:
 		last_num = int(sys.argv[1])

@@ -13,6 +13,8 @@ BOARD_COLOR = (0, 0, 0)
 
 START = (40, 40)
 
+TEXT_FONT = "KaiTi" if sys.platform == "win32" else "WenQuanYi Micro Hei"
+
 def draw_chess_board(surface):
     for i in range(10):
         pygame.draw.line(surface, BOARD_COLOR, (START[1], START[0] + i * 50), (440, START[0] + i * 50), 4)
@@ -53,7 +55,7 @@ if __name__ == "__main__":
         .........
         车马相士帅士相马车"""))
 
-    font = pygame.font.SysFont("KaiTi", 40)
+    font = pygame.font.SysFont(TEXT_FONT, 40)
     surface = pygame.display.set_mode((800, 600))
     pygame.display.set_caption("Visualize")
     surface.fill(WHITE);
