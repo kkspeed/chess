@@ -91,8 +91,20 @@ class Agent:
             move = self.encoder.decode_move(state, idx)
             if move is not None and move.piece in state.board.pieces and move.target.row >= 0 and move.target.row < state.board.height \
                 and move.target.col < state.board.width and move.target.col >= 0:
-                if move.apply_move(state.board) in self.encountered:
+                result_board = move.apply_move(state.board)
+                if result_board in self.encountered:
                     continue
+                ps = [p for p in result.board.pieces if str(p) == '帅' or str(p) == '将']
+                if len(ps) == 2:
+                    k1, k2 = ps
+                    if k1.pos.col == k2.pos.col:
+                        face = True
+                        for r in range(min(k1.pos.row + 1, k2.pos.row + 1), max(k1.pos.row, k2.pos.row)):
+                            if board.piece_at(Point(r, k1.pos.col)):
+                                face = False
+                                break
+                        if face:
+                            continue
                 return move, idx
         return None
 
