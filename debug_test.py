@@ -14,7 +14,7 @@ def test(model1, model2):
 		agent2.model.load_weights(model2)
 	red = 0
 	black = 0
-	for i in range(20):
+	for i in range(50):
 		winner = agent.game_play(agent1, agent2)
 		if winner == Player.red:
 			red += 1
@@ -62,22 +62,4 @@ def train(epoch, model = None):
 if __name__ == "__main__":
 	import tensorflow as tf
 	tf.device("/gpu:0")
-	last_num = None
-	if len(sys.argv) >= 2:
-		last_num = int(sys.argv[1])
-	last_model = None
-	if last_num is not None:
-		last_model = 'model_%d.h5' % last_num
-	for epoch in range(last_num + 1, last_num + 2):
-		agent1 = agent.Agent(Player.red, None)
-		agent2 = agent.Agent(Player.black, None)
-		if last_model:
-			agent1.model.load_weights(last_model)
-			agent2.model.load_weights(last_model)
-		for round in range(200):
-			print("===\n\nPlaying epoch: %d, round %d\n\n===" % (epoch, round))
-			agent.self_play(str(epoch), round, agent1, agent2)
-		last_model = train(str(epoch), last_model)
-	# test('model_10.h5', 'model_9.h5')
-    # for i in range(20):
-    #     debug_play("model_12.h5", "model_1.h5")
+	test(sys.argv[1], sys.argv[2])
