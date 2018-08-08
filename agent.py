@@ -43,6 +43,7 @@ class Agent:
         self.encoder = encoder.SimpleEncoder()
         self.model = create_model((1, BOARD_HEIGHT, BOARD_WIDTH), (encoder.TOTAL_MOVES, 1))
         self.collector = collector
+        self.encountered = set()
 
     def select_move(self, game_state: GameState):
         if self.player == Player.black:
@@ -64,6 +65,7 @@ class Agent:
                 piece.color = Player.black if piece.color == Player.red else Player.red
                 piece.pos = Point(top - piece.pos.row, piece.pos.col)
             state = GameState(new_board, Player.red, game_state.steps + 1)
+            self.encountered.add(new_board)
             return state
         else:
             encoded = self.encoder.encode(game_state.board)
@@ -75,6 +77,7 @@ class Agent:
             self.collector.record(encoded, idx)
             new_board = m.apply_move(game_state.board)
             state = GameState(new_board, Player.black, game_state.steps + 1)
+            self.encountered.add(new_board)
             return state
 
     def finish(self, reward):
@@ -88,6 +91,8 @@ class Agent:
             move = self.encoder.decode_move(state, idx)
             if move is not None and move.piece in state.board.pieces and move.target.row >= 0 and move.target.row < state.board.height \
                 and move.target.col < state.board.width and move.target.col >= 0:
+                if move.apply_move(state.board) in self.encountered:
+                    continue
                 return move, idx
         return None
 

@@ -100,6 +100,19 @@ class 帅(Piece):
                 return None
 
         piece = board.piece_at(target)
+
+        # 王对面:
+        for other in board.pieces:
+            if other.__class__.__name__ == '帅' and other.pos.col == target.col and other != self:
+                found = False
+                for r in range(min(other.pos.row, self.pos.row) + 1, max(other.pos.row, self.pos.row)):
+                    if board.piece_at(Point(r, target.col)):
+                        found = True
+                        break
+                if not found:
+                    return None
+                break
+
         if piece is None:
             return Move(self, target)
         if piece.color != self.color:
@@ -329,6 +342,12 @@ class Board:
         for p in self.pieces:
             matrix[p.pos.row][p.pos.col] = str(p)
         return '\n'.join(map(''.join, matrix))
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def __eq__(self, other):
+        return str(self) == str(other)
 
 
 class Move:
