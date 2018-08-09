@@ -113,8 +113,8 @@ class Agent:
         return valid_move
 
     def train_batch(self, inputs, target_vectors):
-        self.model.compile(optimizer=Adam(lr=0.02), loss=['categorical_crossentropy'])
-        self.model.fit(inputs, target_vectors, batch_size=1024, epochs=10, shuffle='batch')
+        self.model.compile(optimizer=Adam(lr=0.01), loss=['categorical_crossentropy'])
+        self.model.fit(inputs, target_vectors, batch_size=1024, epochs=20, shuffle='batch')
 
     def train(self, exp: ExpCollector):
         self.model.compile(optimizer=Adam(lr=0.02), loss=['categorical_crossentropy'])
@@ -181,12 +181,14 @@ def self_play(episode, round, agent1, agent2):
         print("Black win")
         agent1.finish(-1)
         agent2.finish(1)
+        collector1.rewards[-1] = -2
         # collector2.rewards[-1] = 50
     if winner == Player.red:
         print("Red win")
         agent1.finish(1)
         # collector1.rewards[-1] = 50
         agent2.finish(-1)
+        collector2.rewards[-1] = -2
     if winner == -1:
         agent1.finish(0)
         agent2.finish(0)
