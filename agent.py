@@ -94,13 +94,13 @@ class Agent:
                 result_board = move.apply_move(state.board)
                 if result_board in self.encountered:
                     continue
-                ps = [p for p in result.board.pieces if str(p) == '帅' or str(p) == '将']
+                ps = [p for p in result_board.pieces if str(p) == '帅' or str(p) == '将']
                 if len(ps) == 2:
                     k1, k2 = ps
                     if k1.pos.col == k2.pos.col:
                         face = True
                         for r in range(min(k1.pos.row + 1, k2.pos.row + 1), max(k1.pos.row, k2.pos.row)):
-                            if board.piece_at(Point(r, k1.pos.col)):
+                            if result_board.piece_at(Point(r, k1.pos.col)):
                                 face = False
                                 break
                         if face:
@@ -159,17 +159,9 @@ def game_play(agent1, agent2):
         return game.winner()
     return winner
 
-def self_play(episode, round, model1 = None, model2 = None):
+def self_play(episode, round, agent1, agent2):
     if not os.path.exists(episode):
         os.mkdir(episode)
-    collector1 = ExpCollector()
-    collector2 = ExpCollector()
-    agent1 = Agent(Player.red, collector1)
-    if model1:
-        agent1.model.load_weights(model1)
-    agent2 = Agent(Player.black, collector2)
-    if model2:
-        agent2.model.load_weights(model2)
     winner = game_play(agent1, agent2)
     score = 600 - len(collector1.inputs)
     if winner == Player.black:
