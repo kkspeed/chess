@@ -33,9 +33,9 @@ class ExpCollector:
 
     def load(self, h5file):
         experience = h5file.get('experience')
-        self.inputs = experience['inputs']
-        self.actions = experience['actions']
-        self.rewards = experience['rewards']
+        self.inputs = experience['inputs'][:]
+        self.actions = experience['actions'][:]
+        self.rewards = experience['rewards'][:]
 
 class Agent:
     def __init__(self, player: Player, collector: ExpCollector):
@@ -108,13 +108,17 @@ class Agent:
                 return move, idx
         return None
 
+    def train_batch(self, inputs, target_vectors):
+        self.model.compile(optimizer=Adam(lr=0.002, clipvalue=0.02), loss=['categorical_crossentropy'])
+        self.model.fit(inputs, target_vectors, batch_size=1024, epochs=10, shuffle='batch')
+
     def train(self, exp: ExpCollector):
-        self.model.compile(optimizer=Adam(), loss=['categorical_crossentropy'])
+        self.model.compile(optimizer=Adam(lr=0.02), loss=['categorical_crossentropy'])
         target_vectors = prepare_experience_data(exp)
-        self.model.fit(exp.inputs, target_vectors, batch_size=20, epochs=1, shuffle='batch')
+        self.model.fit(exp.inputs, target_vectors, batch_size=128, epochs=6, shuffle='batch')
 
 def clip_probs(original_probs):
-    min_p = 0.0001
+    min_p = 0.05
     max_p = 1 - min_p
     clipped_probs = np.clip(original_probs, min_p, max_p)
     clipped_probs = clipped_probs / np.sum(clipped_probs)
@@ -162,30 +166,37 @@ def game_play(agent1, agent2):
 def self_play(episode, round, agent1, agent2):
     if not os.path.exists(episode):
         os.mkdir(episode)
+    collector1 = ExpCollector()
+    collector2 = ExpCollector()
+
+    agent2.collector = collector2
+    agent1.collector = collector1
+
     winner = game_play(agent1, agent2)
-    score = 600 - len(collector1.inputs)
     if winner == Player.black:
         print("Black win")
-        agent1.finish(-score)
-        agent2.finish(score)
-        collector2.rewards[-1] = 2 * score
+        agent1.finish(-1)
+        agent2.finish(1)
+        collector2.rewards[-1] = 50
     if winner == Player.red:
         print("Red win")
-        agent1.finish(score)
-        collector1.rewards[-1] = 2 * score
-        agent2.finish(-score)
+        agent1.finish(1)
+        collector1.rewards[-1] = 50
+        agent2.finish(-1)
     if winner == -1:
-        agent1.finish(-600000)
-        agent2.finish(-600000)
+        agent1.finish(0)
+        agent2.finish(0)
+        for i in range(300, len(collector1.rewards)):
+            collector1.rewards[i] = -1000
+        for i in range(300, len(collector2.rewards)):
+            collector2.rewards[i] = -1000
         print("It's draw %s - %d" % (episode, round))
     file_path = os.path.join(episode, "%s_1.h5" % round)
-    h51 = h5py.File(file_path, 'w')
-    collector1.save(h51)
-    h51.close()
+    with h5py.File(file_path, 'w') as h51:
+        collector1.save(h51)
     file_path = os.path.join(episode, "%s_2.h5" % round)
-    h52 = h5py.File(file_path, 'w')
-    collector2.save(h52)
-    h52.close()
+    with h5py.File(file_path, 'w') as h52:
+        collector2.save(h52)
 
 if __name__ == "__main__":
     episode = sys.argv[1]

@@ -58,6 +58,26 @@ def train(epoch, model = None):
     poly_agent.model.save_weights(new_model)
     return new_model
 
+def train_batch(epoch, model = None):
+    import numpy as np
+    poly_agent = agent.Agent(Player.red, agent.ExpCollector())
+    if model:
+        poly_agent.model.load_weights(model)
+    inputs = []
+    target = []
+    for f in os.listdir(epoch):
+        path = os.path.join(epoch, f)
+        print('train on ', path)
+        with h5py.File(path, 'r') as h5:
+            exp = agent.ExpCollector()
+            exp.load(h5)
+            inputs.append(exp.inputs)
+            target.append(agent.prepare_experience_data(exp))
+    poly_agent.train_batch(np.concatenate(inputs), np.concatenate(target))
+    new_model = "model_%s.h5" % epoch
+    poly_agent.model.save_weights(new_model)
+    return new_model
+
 if __name__ == "__main__":
     last_num = None
     if len(sys.argv) >= 2:
@@ -71,10 +91,12 @@ if __name__ == "__main__":
         if last_model:
             agent1.model.load_weights(last_model)
             agent2.model.load_weights(last_model)
-        for round in range(200):
+        for round in range(350):
             print("===\n\nPlaying epoch: %d, round %d\n\n===" % (epoch, round))
+            agent1.encountered = set()
+            agent2.encountered = set()
             agent.self_play(str(epoch), round, agent1, agent2)
-        last_model = train(str(epoch), last_model)
+        last_model = train_batch(str(epoch), last_model)
     # test('model_10.h5', 'model_9.h5')
     # for i in range(20):
     #     debug_play("model_12.h5", "model_1.h5")
