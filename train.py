@@ -85,7 +85,9 @@ if __name__ == "__main__":
     last_model = None
     if last_num is not None:
         last_model = 'model_%d.h5' % last_num
-    for epoch in range(last_num + 1, last_num + 2):
+    else:
+        last_num = 0
+    for epoch in range(last_num + 1, last_num + 8):
         agent1 = agent.Agent(Player.red, None)
         agent2 = agent.Agent(Player.black, None)
         if last_model:

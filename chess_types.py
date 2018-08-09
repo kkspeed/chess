@@ -372,7 +372,6 @@ class KillMove(Move):
 
     def apply_move(self, board: Board) -> Board:
         result = copy.deepcopy(board)
-        print("Kill: ", self.killed)
         result.pieces.remove(self.killed)
         return super().apply_move(result)
 

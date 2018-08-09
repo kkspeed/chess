@@ -14,7 +14,8 @@ def test(model1, model2):
 		agent2.model.load_weights(model2)
 	red = 0
 	black = 0
-	for _ in range(100):
+	for i in range(100):
+        print("Playing: ", i, "of", 100)
 		winner = agent.game_play(agent1, agent2)
 		if winner == Player.red:
 			red += 1

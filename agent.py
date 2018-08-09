@@ -6,7 +6,7 @@ import encoder
 import textwrap
 import h5py
 from model import create_model
-from chess_types import GameState, Player, Move, Board, Point
+from chess_types import GameState, Player, Move, KillMove, Board, Point
 from keras.optimizers import SGD, Adam
 
 BOARD_WIDTH = 9
@@ -87,7 +87,8 @@ class Agent:
         candidates = np.arange(0, encoder.TOTAL_MOVES)
         ranked_moves = np.random.choice(candidates,
             len(candidates), replace=False, p=clip_probs(move_probs))
-        for idx in ranked_moves:
+        valid_move = None
+        for idx in reversed(ranked_moves):
             move = self.encoder.decode_move(state, idx)
             if move is not None and move.piece in state.board.pieces and move.target.row >= 0 and move.target.row < state.board.height \
                 and move.target.col < state.board.width and move.target.col >= 0:
@@ -105,11 +106,14 @@ class Agent:
                                 break
                         if face:
                             continue
-                return move, idx
-        return None
+                win = type(move) is KillMove and len([piece for piece in result_board.pieces if str(piece) == '将']) == 0
+                if win:
+                    return move, idx
+                valid_move = (move, idx)
+        return valid_move
 
     def train_batch(self, inputs, target_vectors):
-        self.model.compile(optimizer=Adam(lr=0.002, clipvalue=0.02), loss=['categorical_crossentropy'])
+        self.model.compile(optimizer=Adam(lr=0.02), loss=['categorical_crossentropy'])
         self.model.fit(inputs, target_vectors, batch_size=1024, epochs=10, shuffle='batch')
 
     def train(self, exp: ExpCollector):
@@ -177,11 +181,11 @@ def self_play(episode, round, agent1, agent2):
         print("Black win")
         agent1.finish(-1)
         agent2.finish(1)
-        collector2.rewards[-1] = 50
+        # collector2.rewards[-1] = 50
     if winner == Player.red:
         print("Red win")
         agent1.finish(1)
-        collector1.rewards[-1] = 50
+        # collector1.rewards[-1] = 50
         agent2.finish(-1)
     if winner == -1:
         agent1.finish(0)
