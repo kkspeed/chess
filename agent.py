@@ -113,8 +113,8 @@ class Agent:
         return valid_move
 
     def train_batch(self, inputs, target_vectors):
-        self.model.compile(optimizer=Adam(lr=0.01), loss=['categorical_crossentropy'])
-        self.model.fit(inputs, target_vectors, batch_size=1024, epochs=20, shuffle='batch')
+        self.model.compile(optimizer=Adam(lr=0.012), loss=['categorical_crossentropy'])
+        self.model.fit(inputs, target_vectors, batch_size=1280, epochs=10, shuffle='batch')
 
     def train(self, exp: ExpCollector):
         self.model.compile(optimizer=Adam(lr=0.02), loss=['categorical_crossentropy'])
