@@ -89,22 +89,23 @@ class Agent:
             if type(move) is KillMove:
                 piece = board.piece_at(move.target)
                 name = str(piece.__class__.__name__)
-                if name == '车':
+                if name == '帅':
+                    self.collector.rewards.append(reward + 50)
+                elif name == '车':
                     self.collector.rewards.append(reward + 10)
-                if name == '炮':
+                elif name == '炮':
                     self.collector.rewards.append(reward + 6)
-                if name == '马':
+                elif name == '马':
                     self.collector.rewards.append(reward + 5)
-                if name == '卒':
+                elif name == '兵':
                     self.collector.rewards.append(reward + 2)
-                if name == '士' or name == '相':
+                elif name == '士' or name == '相':
                     self.collector.rewards.append(reward + 1)
+                else:
+                    self.collector.rewards.append(reward)
             else:
                 self.collector.rewards.append(reward)
-
-
-            
-        self.collector.assign_reward(reward)
+        assert len(self.collector.rewards) == len(self.collector.inputs)
 
     def choose(self, move_probs, state) -> Move:
         candidates = np.arange(0, encoder.TOTAL_MOVES)
@@ -131,13 +132,13 @@ class Agent:
                             continue
                 win = type(move) is KillMove and len([piece for piece in result_board.pieces if str(piece) == '将']) == 0
                 if win:
-                    return move, idx
+                   return move, idx
                 valid_move = (move, idx)
         return valid_move
 
     def train_batch(self, inputs, target_vectors):
         self.model.compile(optimizer=Adam(lr=0.015), loss=['categorical_crossentropy'])
-        self.model.fit(inputs, target_vectors, batch_size=2000, epochs=3, shuffle='batch')
+        self.model.fit(inputs, target_vectors, batch_size=2000, epochs=10, shuffle='batch')
 
     def train(self, exp: ExpCollector):
         self.model.compile(optimizer=Adam(lr=0.02), loss=['categorical_crossentropy'])
@@ -145,7 +146,7 @@ class Agent:
         self.model.fit(exp.inputs, target_vectors, batch_size=128, epochs=6, shuffle='batch')
 
 def clip_probs(original_probs):
-    min_p = 0.05
+    min_p = 0.03
     max_p = 1 - min_p
     clipped_probs = np.clip(original_probs, min_p, max_p)
     clipped_probs = clipped_probs / np.sum(clipped_probs)
@@ -202,14 +203,14 @@ def self_play(episode, round, agent1, agent2):
     winner = game_play(agent1, agent2)
     if winner == Player.black:
         print("Black win")
-        agent1.finish(-50)
-        agent2.finish(50)
-        # collector2.rewards[-1] = 50
+        agent1.finish(-20)
+        agent2.finish(20)
+        collector1.rewards[-1] = -100
     if winner == Player.red:
         print("Red win")
-        agent1.finish(50)
-        # collector1.rewards[-1] = 50
-        agent2.finish(-50)
+        agent1.finish(20)
+        agent2.finish(-20)
+        collector2.rewards[-1] = -100
     if winner == -1:
         agent1.finish(0)
         agent2.finish(0)
