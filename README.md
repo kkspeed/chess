@@ -28,3 +28,5 @@ The bot depends on Keras (preferrably with tensorflow backend), h5py and pygame 
 Learning rate, batch size, epochs:  train_batch function in agent.py
 Randomness: clip_probs function in agent.py
 Number of game plays for each training: __main__ in train.py
+Rewards: self_play function in train.py. Currently it's rather naive: +1 for each step that leads to winning. -1 for each step that leads to failing. -2 for the last step for losing to prevent bot from committing suicide.
+```
