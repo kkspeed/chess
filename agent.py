@@ -113,8 +113,8 @@ class Agent:
         return valid_move
 
     def train_batch(self, inputs, target_vectors):
-        self.model.compile(optimizer=Adam(lr=0.012), loss=['categorical_crossentropy'])
-        self.model.fit(inputs, target_vectors, batch_size=1280, epochs=10, shuffle='batch')
+        self.model.compile(optimizer=Adam(lr=0.001), loss=['categorical_crossentropy'])
+        self.model.fit(inputs, target_vectors, batch_size=1440, epochs=10, shuffle='batch')
 
     def train(self, exp: ExpCollector):
         self.model.compile(optimizer=Adam(lr=0.02), loss=['categorical_crossentropy'])
@@ -122,7 +122,7 @@ class Agent:
         self.model.fit(exp.inputs, target_vectors, batch_size=128, epochs=6, shuffle='batch')
 
 def clip_probs(original_probs):
-    min_p = 0.05
+    min_p = 0.08
     max_p = 1 - min_p
     clipped_probs = np.clip(original_probs, min_p, max_p)
     clipped_probs = clipped_probs / np.sum(clipped_probs)
