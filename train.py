@@ -82,18 +82,21 @@ if __name__ == "__main__":
     last_num = None
     if len(sys.argv) >= 2:
         last_num = int(sys.argv[1])
+    max_num = 20
+    if len(sys.argv) >= 3:
+        max_num = int(sys.argv[2])
     last_model = None
-    if last_num is not None:
+    if last_num is not None and last_num != 0:
         last_model = 'model_%d.h5' % last_num
     else:
         last_num = 0
-    for epoch in range(last_num + 1, last_num + 20):
+    for epoch in range(last_num + 1, last_num + max_num):
         agent1 = agent.Agent(Player.red, None)
         agent2 = agent.Agent(Player.black, None)
         if last_model:
             agent1.model.load_weights(last_model)
             agent2.model.load_weights(last_model)
-        for round in range(550):
+        for round in range(650):
             print("===\n\nPlaying epoch: %d, round %d\n\n===" % (epoch, round))
             agent1.encountered = set()
             agent2.encountered = set()

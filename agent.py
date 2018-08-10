@@ -81,6 +81,29 @@ class Agent:
             return state
 
     def finish(self, reward):
+        for i in range(len(self.collector.inputs)):
+            input = self.collector.inputs[i]
+            board = self.encoder.decode(input)
+            state = GameState(board, Player.red)
+            move = self.encoder.decode_move(state, self.collector.actions[i])
+            if type(move) is KillMove:
+                piece = board.piece_at(move.target)
+                name = str(piece.__class__.__name__)
+                if name == '车':
+                    self.collector.rewards.append(reward + 10)
+                if name == '炮':
+                    self.collector.rewards.append(reward + 6)
+                if name == '马':
+                    self.collector.rewards.append(reward + 5)
+                if name == '卒':
+                    self.collector.rewards.append(reward + 2)
+                if name == '士' or name == '相':
+                    self.collector.rewards.append(reward + 1)
+            else:
+                self.collector.rewards.append(reward)
+
+
+            
         self.collector.assign_reward(reward)
 
     def choose(self, move_probs, state) -> Move:
@@ -113,8 +136,8 @@ class Agent:
         return valid_move
 
     def train_batch(self, inputs, target_vectors):
-        self.model.compile(optimizer=Adam(lr=0.001), loss=['categorical_crossentropy'])
-        self.model.fit(inputs, target_vectors, batch_size=1440, epochs=10, shuffle='batch')
+        self.model.compile(optimizer=Adam(lr=0.015), loss=['categorical_crossentropy'])
+        self.model.fit(inputs, target_vectors, batch_size=2000, epochs=3, shuffle='batch')
 
     def train(self, exp: ExpCollector):
         self.model.compile(optimizer=Adam(lr=0.02), loss=['categorical_crossentropy'])
@@ -122,7 +145,7 @@ class Agent:
         self.model.fit(exp.inputs, target_vectors, batch_size=128, epochs=6, shuffle='batch')
 
 def clip_probs(original_probs):
-    min_p = 0.08
+    min_p = 0.05
     max_p = 1 - min_p
     clipped_probs = np.clip(original_probs, min_p, max_p)
     clipped_probs = clipped_probs / np.sum(clipped_probs)
@@ -179,16 +202,14 @@ def self_play(episode, round, agent1, agent2):
     winner = game_play(agent1, agent2)
     if winner == Player.black:
         print("Black win")
-        agent1.finish(-1)
-        agent2.finish(1)
-        collector1.rewards[-1] = -2
+        agent1.finish(-50)
+        agent2.finish(50)
         # collector2.rewards[-1] = 50
     if winner == Player.red:
         print("Red win")
-        agent1.finish(1)
+        agent1.finish(50)
         # collector1.rewards[-1] = 50
-        agent2.finish(-1)
-        collector2.rewards[-1] = -2
+        agent2.finish(-50)
     if winner == -1:
         agent1.finish(0)
         agent2.finish(0)
