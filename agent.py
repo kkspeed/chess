@@ -226,7 +226,21 @@ def self_play(episode, round, agent1, agent2):
     with h5py.File(file_path, 'w') as h52:
         collector2.save(h52)
 
-if __name__ == "__main__":
-    episode = sys.argv[1]
-    for round in range(100):
-        self_play(episode, str(round))
+class HumanAgent:
+    def __init__(self, player: Player):
+        self.player = player
+
+    def select_move(self, game_state: GameState):
+        assert game_state.player == self.player
+        move = input("Your move: ")
+        row, col = ord(move[0]) - ord('A'), int(move[1])
+        tr, tc = ord(move[3]) - ord('A'), int(move[4])
+        piece = game_state.board.piece_at(Point(row, col))
+        if piece.color != self.player:
+            return self.select_move(game_state)
+        m = piece.calc_move(game_state.board, Point(tr, tc))
+        if m is None:
+            return self.select_move(game_state)
+        return GameState(m.apply_move(game_state.board), 
+            Player.red if self.player == Player.black else Player.black,
+            game_state.steps + 1)
