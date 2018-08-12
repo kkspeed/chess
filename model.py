@@ -1,12 +1,12 @@
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
-from keras.layers import Conv2D, MaxPooling2D, ZeroPadding2D
+from keras.layers import Conv2D, MaxPooling2D
 
-from encoder import *
+from encoder import TOTAL_MOVES 
 
 def create_model(input_shape, output_shape):
     model = Sequential()
-    model.add(Conv2D(32, kernel_size=(3, 3),
+    model.add(Conv2D(32, kernel_size=(3, 3), padding='same',
         activation='relu', input_shape=input_shape, data_format='channels_first'))
     model.add(Dropout(rate=0.6))
     model.add(Conv2D(64, (3, 3), activation='relu'))
