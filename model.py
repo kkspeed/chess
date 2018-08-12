@@ -6,7 +6,7 @@ from encoder import TOTAL_MOVES
 
 def create_model(input_shape, output_shape):
     model = Sequential()
-    model.add(Conv2D(32, kernel_size=(3, 3), padding='same',
+    model.add(Conv2D(32, kernel_size=(3, 3), 
         activation='relu', input_shape=input_shape, data_format='channels_first'))
     model.add(Dropout(rate=0.6))
     model.add(Conv2D(64, (3, 3), activation='relu'))
@@ -23,4 +23,4 @@ def create_model(input_shape, output_shape):
     return model
 
 if __name__ == "__main__":
-    model = create_model((10, 9, 1), (TOTAL_MOVES, 1))
+    model = create_model((1, 10, 9), (TOTAL_MOVES, 1))
