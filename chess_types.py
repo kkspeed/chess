@@ -71,6 +71,9 @@ class Piece:
             return 兵(pos, Player.black)
         raise NotImplementedError
 
+    def name(self):
+        return str(self.__class__.__name__)
+
     def __eq__(self, other):
         return self.color == other.color and self.pos == other.pos and\
             str(self.__class__) == str(other.__class__)
@@ -103,7 +106,7 @@ class 帅(Piece):
 
         # 王对面:
         for other in board.pieces:
-            if other.__class__.__name__ == '帅' and other.pos.col == target.col and other != self:
+            if other.name() == '帅' and other.pos.col == target.col and other != self:
                 found = False
                 for r in range(min(other.pos.row, self.pos.row) + 1, max(other.pos.row, self.pos.row)):
                     if board.piece_at(Point(r, target.col)):

@@ -117,7 +117,7 @@ class SimpleEncoder:
             filter(lambda piece: piece.color == state.player, state.board.pieces))
         encounter = 0
         for piece in candidates:
-            if str(piece.__class__.__name__) == move_fig:
+            if piece.name() == move_fig:
                 if encounter == fig_num:
                     target = piece.possible_positions()[move_dir]
                     return piece.calc_move(state.board, target)
@@ -130,8 +130,8 @@ class SimpleEncoder:
             filter(lambda piece: piece.color == state.player, state.board.pieces))
         d = collections.defaultdict(list)
         for piece in candidates:
-            d[str(piece.__class__.__name__)].append(piece)
-            d[str(piece.__class__.__name__)].sort()
+            d[piece.name()].append(piece)
+            d[piece.name()].sort()
         start = 0
         for name, step in MOVE:
             if name in d:

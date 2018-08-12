@@ -88,7 +88,7 @@ class Agent:
             move = self.encoder.decode_move(state, self.collector.actions[i])
             if type(move) is KillMove:
                 piece = board.piece_at(move.target)
-                name = str(piece.__class__.__name__)
+                name = piece.name()
                 if name == '帅':
                     self.collector.rewards.append(reward + 50)
                 elif name == '车':
@@ -132,13 +132,13 @@ class Agent:
                             continue
                 win = type(move) is KillMove and len([piece for piece in result_board.pieces if str(piece) == '将']) == 0
                 if win:
-                   return move, idx
+                  return move, idx
                 valid_move = (move, idx)
         return valid_move
 
     def train_batch(self, inputs, target_vectors):
-        self.model.compile(optimizer=Adam(lr=0.015), loss=['categorical_crossentropy'])
-        self.model.fit(inputs, target_vectors, batch_size=2000, epochs=10, shuffle='batch')
+        self.model.compile(optimizer=Adam(lr=0.01), loss=['categorical_crossentropy'])
+        self.model.fit(inputs, target_vectors, batch_size=4000, epochs=10, shuffle='batch')
 
     def train(self, exp: ExpCollector):
         self.model.compile(optimizer=Adam(lr=0.02), loss=['categorical_crossentropy'])
@@ -146,7 +146,7 @@ class Agent:
         self.model.fit(exp.inputs, target_vectors, batch_size=128, epochs=6, shuffle='batch')
 
 def clip_probs(original_probs):
-    min_p = 0.03
+    min_p = 0.01
     max_p = 1 - min_p
     clipped_probs = np.clip(original_probs, min_p, max_p)
     clipped_probs = clipped_probs / np.sum(clipped_probs)
@@ -214,10 +214,10 @@ def self_play(episode, round, agent1, agent2):
     if winner == -1:
         agent1.finish(0)
         agent2.finish(0)
-        for i in range(300, len(collector1.rewards)):
-            collector1.rewards[i] = -1000
-        for i in range(300, len(collector2.rewards)):
-            collector2.rewards[i] = -1000
+        # for i in range(300, len(collector1.rewards)):
+        #     collector1.rewards[i] = -1000
+        # for i in range(300, len(collector2.rewards)):
+        #     collector2.rewards[i] = -1000
         print("It's draw %s - %d" % (episode, round))
     file_path = os.path.join(episode, "%s_1.h5" % round)
     with h5py.File(file_path, 'w') as h51:
