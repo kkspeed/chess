@@ -114,8 +114,7 @@ class Agent:
         valid_move = None
         for idx in reversed(ranked_moves):
             move = self.encoder.decode_move(state, idx)
-            if move is not None and move.piece in state.board.pieces and move.target.row >= 0 and move.target.row < state.board.height \
-                and move.target.col < state.board.width and move.target.col >= 0:
+            if move is not None:
                 result_board = move.apply_move(state.board)
                 if result_board in self.encountered:
                     continue
