@@ -51,7 +51,7 @@ class Agent:
             game_state.player = Player.red
             top = game_state.board.height - 1
             for piece in game_state.board.pieces:
-                piece.color = Player.black if piece.color == Player.red else Player.red
+                piece.color = piece.color.other()
                 piece.pos = Point(top - piece.pos.row, piece.pos.col)
             encoded = self.encoder.encode(game_state.board)
             predicted = self.model.predict(np.array([encoded]))[0]
@@ -62,7 +62,7 @@ class Agent:
             self.collector.record(encoded, idx)
             new_board = m.apply_move(game_state.board)
             for piece in new_board.pieces:
-                piece.color = Player.black if piece.color == Player.red else Player.red
+                piece.color = piece.color.other()
                 piece.pos = Point(top - piece.pos.row, piece.pos.col)
             state = GameState(new_board, Player.red, game_state.steps + 1)
             self.encountered.add(new_board)
@@ -242,5 +242,5 @@ class HumanAgent:
         if m is None:
             return self.select_move(game_state)
         return GameState(m.apply_move(game_state.board), 
-            Player.red if self.player == Player.black else Player.black,
+            self.player.other(),
             game_state.steps + 1)

@@ -7,11 +7,27 @@ import enum
 class Player(enum.Enum):
     red = 1
     black = 2
+    def other(self):
+        return Player.red if self == Player.black else Player.black
 
 
 # pylint: disable=C0103
 class Point(namedtuple('Point', 'row col')):
     pass
+
+
+def check_valid_move(func):
+    """
+    Ensure the move applied to |func| is globally valid.
+    """
+    def calc_move(self, board: 'Board', target: Point) -> 'Move':
+        if target.row >= board.height or target.row < 0 or \
+            target.col >= board.width or target.col < 0:
+            return None
+        return func(self, board, target)
+    calc_move.__name__ = func.__name__
+    calc_move.__doc__ = func.__doc__
+    return calc_move
 
 
 class Piece:
@@ -28,9 +44,6 @@ class Piece:
     def possible_moves(self, board):
         result = []
         for target in self.possible_positions():
-            if target.row < 0 or target.row >= board.height or\
-                    target.col < 0 or target.col >= board.width:
-                continue
             move = self.calc_move(board, target)
             if move is not None:
                 result.append(move)
@@ -94,6 +107,7 @@ class 帅(Piece):
                 Point(self.pos.row, self.pos.col + 1),
                 Point(self.pos.row, self.pos.col - 1)]
 
+    @check_valid_move
     def calc_move(self, board, target):
         if self.color == Player.red:
             if target.row <= 6 or target.col <= 2 or target.col >= 6:
@@ -135,6 +149,7 @@ class 士(Piece):
                 Point(self.pos.row - 1, self.pos.col + 1),
                 Point(self.pos.row - 1, self.pos.col - 1)]
 
+    @check_valid_move
     def calc_move(self, board, target):
         if self.color == Player.red:
             if target.row <= 6 or target.col <= 2 or target.col >= 6:
@@ -161,6 +176,7 @@ class 相(Piece):
                 Point(self.pos.row - 2, self.pos.col + 2),
                 Point(self.pos.row - 2, self.pos.col - 2)]
 
+    @check_valid_move
     def calc_move(self, board, target):
         if self.color == Player.red:
             if target.row < 5:
@@ -196,6 +212,7 @@ class 马(Piece):
                 Point(self.pos.row + 1, self.pos.col - 2),
                 Point(self.pos.row - 1, self.pos.col - 2)]
 
+    @check_valid_move
     def calc_move(self, board, target):
         check = None
         if abs(target.row - self.pos.row) == 1:
@@ -224,6 +241,7 @@ class 车(Piece):
         positions.remove(self.pos)
         return list(sorted(positions))
 
+    @check_valid_move
     def calc_move(self, board, target):
         if self.pos.row == target.row:
             for c in range(min(self.pos.col, target.col) + 1,
@@ -254,6 +272,7 @@ class 炮(Piece):
         positions.remove(self.pos)
         return list(sorted(positions))
 
+    @check_valid_move
     def calc_move(self, board, target):
         piece = board.piece_at(target)
         if self.pos.row == target.row:
@@ -305,6 +324,7 @@ class 兵(Piece):
     def __str__(self):
         return "兵" if self.color == Player.red else "卒"
 
+    @check_valid_move
     def calc_move(self, board, target):
         过河 = (self.pos.row >= 5 and self.color == Player.black) or\
             (self.pos.row <= 4 and self.color == Player.red)
@@ -401,7 +421,7 @@ class GameState:
         self.steps = steps
 
     def is_win(self, player):
-        other = Player.red if player == Player.black else Player.black
+        other = player.other()
         win = True
         for piece in self.board.pieces:
             if type(piece) is 帅 and piece.color == other:
