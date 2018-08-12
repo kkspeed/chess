@@ -12,6 +12,7 @@ from keras.optimizers import SGD, Adam
 BOARD_WIDTH = 9
 BOARD_HEIGHT = 10
 
+
 class ExpCollector:
     def __init__(self):
         self.inputs = []
@@ -27,9 +28,12 @@ class ExpCollector:
 
     def save(self, h5file):
         h5file.create_group('experience')
-        h5file['experience'].create_dataset('inputs', data=np.array(self.inputs))
-        h5file['experience'].create_dataset('actions', data=np.array(self.actions))
-        h5file['experience'].create_dataset('rewards', data=np.array(self.rewards))
+        h5file['experience'].create_dataset(
+            'inputs', data=np.array(self.inputs))
+        h5file['experience'].create_dataset(
+            'actions', data=np.array(self.actions))
+        h5file['experience'].create_dataset(
+            'rewards', data=np.array(self.rewards))
 
     def load(self, h5file):
         experience = h5file.get('experience')
@@ -37,11 +41,13 @@ class ExpCollector:
         self.actions = experience['actions'][:]
         self.rewards = experience['rewards'][:]
 
+
 class Agent:
     def __init__(self, player: Player, collector: ExpCollector):
         self.player = player
         self.encoder = encoder.SimpleEncoder()
-        self.model = create_model((1, BOARD_HEIGHT, BOARD_WIDTH), (encoder.TOTAL_MOVES, 1))
+        self.model = create_model(
+            (1, BOARD_HEIGHT, BOARD_WIDTH), (encoder.TOTAL_MOVES, 1))
         self.collector = collector
         self.encountered = set()
 
@@ -110,7 +116,7 @@ class Agent:
     def choose(self, move_probs, state) -> Move:
         candidates = np.arange(0, encoder.TOTAL_MOVES)
         ranked_moves = np.random.choice(candidates,
-            len(candidates), replace=False, p=clip_probs(move_probs))
+                                        len(candidates), replace=False, p=clip_probs(move_probs))
         valid_move = None
         for idx in reversed(ranked_moves):
             move = self.encoder.decode_move(state, idx)
@@ -118,20 +124,26 @@ class Agent:
                 result_board = move.apply_move(state.board)
                 if result_board in self.encountered:
                     continue
-                win = type(move) is KillMove and len([piece for piece in result_board.pieces if str(piece) == '将']) == 0
+                win = type(move) is KillMove and len(
+                    [piece for piece in result_board.pieces if str(piece) == '将']) == 0
                 if win:
                   return move, idx
                 valid_move = (move, idx)
         return valid_move
 
     def train_batch(self, inputs, target_vectors):
-        self.model.compile(optimizer=Adam(lr=0.01), loss=['categorical_crossentropy'])
-        self.model.fit(inputs, target_vectors, batch_size=4000, epochs=10, shuffle='batch')
+        self.model.compile(optimizer=Adam(lr=0.01), loss=[
+                           'categorical_crossentropy'])
+        self.model.fit(inputs, target_vectors, batch_size=4000,
+                       epochs=10, shuffle='batch')
 
     def train(self, exp: ExpCollector):
-        self.model.compile(optimizer=Adam(lr=0.02), loss=['categorical_crossentropy'])
+        self.model.compile(optimizer=Adam(lr=0.02), loss=[
+                           'categorical_crossentropy'])
         target_vectors = prepare_experience_data(exp)
-        self.model.fit(exp.inputs, target_vectors, batch_size=128, epochs=6, shuffle='batch')
+        self.model.fit(exp.inputs, target_vectors,
+                       batch_size=128, epochs=6, shuffle='batch')
+
 
 def clip_probs(original_probs):
     min_p = 0.01
@@ -139,6 +151,7 @@ def clip_probs(original_probs):
     clipped_probs = np.clip(original_probs, min_p, max_p)
     clipped_probs = clipped_probs / np.sum(clipped_probs)
     return clipped_probs
+
 
 def prepare_experience_data(experience: ExpCollector):
     experience_size = len(experience.rewards)
@@ -148,6 +161,7 @@ def prepare_experience_data(experience: ExpCollector):
         reward = experience.rewards[i]
         target_vectors[i][action] = reward
     return target_vectors
+
 
 def game_play(agent1, agent2):
     board = Board()
@@ -178,6 +192,7 @@ def game_play(agent1, agent2):
     if winner is None:
         return game.winner()
     return winner
+
 
 def self_play(episode, round, agent1, agent2):
     if not os.path.exists(episode):
@@ -214,6 +229,7 @@ def self_play(episode, round, agent1, agent2):
     with h5py.File(file_path, 'w') as h52:
         collector2.save(h52)
 
+
 class HumanAgent:
     def __init__(self, player: Player):
         self.player = player
@@ -229,6 +245,6 @@ class HumanAgent:
         m = piece.calc_move(game_state.board, Point(tr, tc))
         if m is None:
             return self.select_move(game_state)
-        return GameState(m.apply_move(game_state.board), 
-            self.player.other(),
-            game_state.steps + 1)
+        return GameState(m.apply_move(game_state.board),
+                         self.player.other(),
+                         game_state.steps + 1)

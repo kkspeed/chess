@@ -7,6 +7,7 @@ import enum
 class Player(enum.Enum):
     red = 1
     black = 2
+
     def other(self):
         return Player.red if self == Player.black else Player.black
 
@@ -20,22 +21,24 @@ def check_valid_move(func):
     """
     Ensure the move applied to |func| is globally valid.
     """
+
     def calc_move(self, board: 'Board', target: Point) -> 'Move':
         if target.row >= board.height or target.row < 0 or \
-            target.col >= board.width or target.col < 0:
+                target.col >= board.width or target.col < 0:
             return None
         move = func(self, board, target)
         if move is None:
             return None
         with board.mutable() as mut_board:
             mut_board.move_piece(move)
-            ps = [p for p in mut_board.pieces if str(p) == '帅' or str(p) == '将']
+            ps = [p for p in mut_board.pieces if str(
+                p) == '帅' or str(p) == '将']
             if len(ps) == 2:
                 k1, k2 = ps
                 if k1.pos.col == k2.pos.col:
-                    not_face = any([mut_board.piece_at(Point(r, k1.pos.col)) 
-                        for r in range(min(k1.pos.row, k2.pos.row) + 1,
-                                       max(k1.pos.row, k2.pos.row))])
+                    not_face = any([mut_board.piece_at(Point(r, k1.pos.col))
+                                    for r in range(min(k1.pos.row, k2.pos.row) + 1,
+                                                   max(k1.pos.row, k2.pos.row))])
                     move = (not_face or None) and move
         return move
     calc_move.__name__ = func.__name__
@@ -406,6 +409,7 @@ class MutableBoard(Board):
             piece.pos = pos
             if isinstance(move, KillMove):
                 self.pieces.append(move.killed)
+
 
 class Move:
     def __init__(self, piece: Piece, target: Point):
