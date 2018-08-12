@@ -24,7 +24,20 @@ def check_valid_move(func):
         if target.row >= board.height or target.row < 0 or \
             target.col >= board.width or target.col < 0:
             return None
-        return func(self, board, target)
+        move = func(self, board, target)
+        if move is None:
+            return None
+        with board.mutable() as mut_board:
+            mut_board.move_piece(move)
+            ps = [p for p in mut_board.pieces if str(p) == '帅' or str(p) == '将']
+            if len(ps) == 2:
+                k1, k2 = ps
+                if k1.pos.col == k2.pos.col:
+                    not_face = any([mut_board.piece_at(Point(r, k1.pos.col)) 
+                        for r in range(min(k1.pos.row, k2.pos.row) + 1,
+                                       max(k1.pos.row, k2.pos.row))])
+                    move = (not_face or None) and move
+        return move
     calc_move.__name__ = func.__name__
     calc_move.__doc__ = func.__doc__
     return calc_move
@@ -117,18 +130,6 @@ class 帅(Piece):
                 return None
 
         piece = board.piece_at(target)
-
-        # 王对面:
-        for other in board.pieces:
-            if other.name() == '帅' and other.pos.col == target.col and other != self:
-                found = False
-                for r in range(min(other.pos.row, self.pos.row) + 1, max(other.pos.row, self.pos.row)):
-                    if board.piece_at(Point(r, target.col)):
-                        found = True
-                        break
-                if not found:
-                    return None
-                break
 
         if piece is None:
             return Move(self, target)
@@ -359,6 +360,13 @@ class Board:
                 return piece
         return None
 
+    def mutable(self) -> 'MutableBoard':
+        """
+        Returns a board that is internally mutable. It's supposed to be
+        used in with statement.
+        """
+        return MutableBoard(self)
+
     def __str__(self):
         matrix = [['.' for c in range(self.width)]
                   for r in range(self.height)]
@@ -372,6 +380,32 @@ class Board:
     def __eq__(self, other):
         return str(self) == str(other)
 
+
+class MutableBoard(Board):
+    def __init__(self, board: Board):
+        self.pieces = board.pieces
+        self.height = board.height
+        self.width = board.width
+        self.moves = []
+
+    def move_piece(self, move: 'Move'):
+        self.moves.append((copy.copy(move.piece.pos), move))
+        if type(move) is KillMove:
+            self.pieces.remove(move.killed)
+        piece = move.piece
+        piece.pos = move.target
+
+    def __enter__(self):
+        assert len(self.moves) == 0
+        return self
+
+    def __exit__(self, excepption_type, exception_val, trace_back):
+        while len(self.moves) > 0:
+            pos, move = self.moves.pop()
+            piece = self.piece_at(move.target)
+            piece.pos = pos
+            if isinstance(move, KillMove):
+                self.pieces.append(move.killed)
 
 class Move:
     def __init__(self, piece: Piece, target: Point):
