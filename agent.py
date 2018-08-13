@@ -67,11 +67,11 @@ class Agent:
             m, idx = move
             self.collector.record(encoded, idx)
             new_board = m.apply_move(game_state.board)
+            self.encountered.add(str(new_board))
             for piece in new_board.pieces:
                 piece.color = piece.color.other()
                 piece.pos = Point(top - piece.pos.row, piece.pos.col)
             state = GameState(new_board, Player.red, game_state.steps + 1)
-            self.encountered.add(new_board)
             return state
         else:
             encoded = self.encoder.encode(game_state.board)
@@ -83,7 +83,7 @@ class Agent:
             self.collector.record(encoded, idx)
             new_board = m.apply_move(game_state.board)
             state = GameState(new_board, Player.black, game_state.steps + 1)
-            self.encountered.add(new_board)
+            self.encountered.add(str(new_board))
             return state
 
     def finish(self, reward):
@@ -114,25 +114,29 @@ class Agent:
         assert len(self.collector.rewards) == len(self.collector.inputs)
 
     def choose(self, move_probs, state) -> Move:
+        explore_probs = 0.2
         candidates = np.arange(0, encoder.TOTAL_MOVES)
-        ranked_moves = np.random.choice(candidates,
-                                        len(candidates), replace=False, p=clip_probs(move_probs))
+        weighted_moves = np.random.choice(candidates,
+                                          len(candidates), replace=False, p=clip_probs(move_probs))
+        uniform_moves = np.random.choice(
+            candidates, len(candidates), replace=False)
+        ranked_moves = weighted_moves if np.random.uniform() >= explore_probs else uniform_moves
         valid_move = None
         for idx in reversed(ranked_moves):
             move = self.encoder.decode_move(state, idx)
             if move is not None:
-                result_board = move.apply_move(state.board)
-                if result_board in self.encountered:
-                    continue
-                win = type(move) is KillMove and len(
-                    [piece for piece in result_board.pieces if str(piece) == '将']) == 0
-                if win:
-                  return move, idx
+                with state.board.mutable() as result_board:
+                    result_board.move_piece(move)
+                    if str(result_board) in self.encountered:
+                        continue
+                    if isinstance(move, KillMove):
+                        if len([piece for piece in result_board.pieces if str(piece) == '将']) == 0:
+                            return move, idx
                 valid_move = (move, idx)
         return valid_move
 
     def train_batch(self, inputs, target_vectors):
-        self.model.compile(optimizer=Adam(lr=0.01), loss=[
+        self.model.compile(optimizer=Adam(lr=0.001), loss=[
                            'categorical_crossentropy'])
         self.model.fit(inputs, target_vectors, batch_size=4000,
                        epochs=10, shuffle='batch')
@@ -146,7 +150,7 @@ class Agent:
 
 
 def clip_probs(original_probs):
-    min_p = 0.01
+    min_p = 0.001
     max_p = 1 - min_p
     clipped_probs = np.clip(original_probs, min_p, max_p)
     clipped_probs = clipped_probs / np.sum(clipped_probs)
