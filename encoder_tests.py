@@ -21,7 +21,7 @@ class EncoderTest(unittest.TestCase):
             ....帅...."""))
         encoder = SimpleEncoder()
         mat = encoder.encode(b)
-        self.assertTrue(np.shape(mat) == (10, 9))
+        self.assertTrue(np.shape(mat) == (1, 10, 9))
         decoded_board = encoder.decode(mat)
         self.assertTrue(len(decoded_board.pieces) == 5)
         self.assertTrue(set(decoded_board.pieces)
