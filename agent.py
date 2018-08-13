@@ -114,10 +114,10 @@ class Agent:
         assert len(self.collector.rewards) == len(self.collector.inputs)
 
     def choose(self, move_probs, state) -> Move:
-        explore_probs = 0.2
+        explore_probs = 0.0
         candidates = np.arange(0, encoder.TOTAL_MOVES)
-        weighted_moves = np.random.choice(candidates,
-                                          len(candidates), replace=False, p=clip_probs(move_probs))
+        weighted_moves = np.random.choice(
+            candidates, len(candidates), replace=False, p=clip_probs(move_probs))
         uniform_moves = np.random.choice(
             candidates, len(candidates), replace=False)
         ranked_moves = weighted_moves if np.random.uniform() >= explore_probs else uniform_moves
@@ -129,9 +129,8 @@ class Agent:
                     result_board.move_piece(move)
                     if str(result_board) in self.encountered:
                         continue
-                    if isinstance(move, KillMove):
-                        if len([piece for piece in result_board.pieces if str(piece) == '将']) == 0:
-                            return move, idx
+                    if isinstance(move, KillMove) and not result_board.pieces_by_strs('将'):
+                        return move, idx
                 valid_move = (move, idx)
         return valid_move
 
@@ -168,6 +167,8 @@ def prepare_experience_data(experience: ExpCollector):
 
 
 def game_play(agent1, agent2):
+    agent1.encountered = set()
+    agent2.encountered = set()
     board = Board()
     board.parse_from_string(textwrap.dedent("""\
         車馬象仕将仕象馬車

@@ -31,8 +31,7 @@ def check_valid_move(func):
             return None
         with board.mutable() as mut_board:
             mut_board.move_piece(move)
-            ps = [p for p in mut_board.pieces if str(
-                p) == '帅' or str(p) == '将']
+            ps = mut_board.pieces_by_strs('帅', '将')
             if len(ps) == 2:
                 k1, k2 = ps
                 if k1.pos.col == k2.pos.col:
@@ -363,6 +362,10 @@ class Board:
                 return piece
         return None
 
+    def pieces_by_strs(self, *strs):
+        strs = set(strs)
+        return [piece for piece in self.pieces if str(piece) in strs]
+
     def mutable(self) -> 'MutableBoard':
         """
         Returns a board that is internally mutable. It's supposed to be
@@ -402,7 +405,7 @@ class MutableBoard(Board):
         assert len(self.moves) == 0
         return self
 
-    def __exit__(self, excepption_type, exception_val, trace_back):
+    def __exit__(self, exception_type, exception_val, trace_back):
         while len(self.moves) > 0:
             pos, move = self.moves.pop()
             piece = self.piece_at(move.target)
