@@ -53,5 +53,5 @@ if __name__ == "__main__":
             print("===\n\nPlaying epoch: %d, round %d\n\n===" % (epoch, round))
             agent1.encountered = set()
             agent2.encountered = set()
-            agent_ac.self_play(str(epoch), round, agent1, agent2)
-        last_model = train_batch_ac(str(epoch), last_model)
+            agent_ac.self_play('ac_' + str(epoch), round, agent1, agent2)
+        last_model = train_batch_ac('ac_' + str(epoch), last_model)
