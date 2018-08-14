@@ -98,7 +98,7 @@ class AcAgent:
             return state
 
     def choose(self, move_probs, state) -> Move:
-        explore_probs = 0.0
+        explore_probs = 0.01
         candidates = np.arange(0, encoder.TOTAL_MOVES)
         weighted_moves = np.random.choice(
             candidates, len(candidates), replace=False, p=clip_probs(move_probs))
