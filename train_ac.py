@@ -40,7 +40,7 @@ if __name__ == "__main__":
         max_num = int(sys.argv[2])
     last_model = None
     if last_num is not None and last_num != 0:
-        last_model = 'model_%d.h5' % last_num
+        last_model = 'ac_model_ac_%d.h5' % last_num
     else:
         last_num = 0
     for epoch in range(last_num + 1, last_num + max_num):

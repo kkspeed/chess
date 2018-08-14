@@ -17,6 +17,7 @@ def create_model():
     state_encoding = Dropout(rate=0.6)(state_encoding)
     state_encoding = Flatten()(state_encoding)
     state_encoding = Dense(1024, activation='relu')(state_encoding)
+    state_encoding = Dropout(rate=0.6)(state_encoding)
 
     policy_hidden_layer = Dense(128, activation='relu')(state_encoding)
     policy_output = Dense(TOTAL_MOVES, activation='softmax')(
@@ -26,6 +27,8 @@ def create_model():
     value_output = Dense(1, activation='tanh')(value_hidden_layer)
 
     model = Model(inputs=[state], outputs=[policy_output, value_output])
+    
+    model.compile(optimizer='sgd', loss=['categorical_crossentropy', 'mse'])
     return model
 
 

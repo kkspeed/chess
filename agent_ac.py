@@ -1,5 +1,5 @@
 import numpy as np
-from keras.optimizers import Adam
+from keras.optimizers import SGD
 import os
 import h5py
 import textwrap
@@ -98,7 +98,7 @@ class AcAgent:
             return state
 
     def choose(self, move_probs, state) -> Move:
-        explore_probs = 0.01
+        explore_probs = 0.03
         candidates = np.arange(0, encoder.TOTAL_MOVES)
         weighted_moves = np.random.choice(
             candidates, len(candidates), replace=False, p=clip_probs(move_probs))
@@ -120,8 +120,8 @@ class AcAgent:
         return valid_move
 
     def train_batch(self, states, policy_targets, value_targets):
-        self.model.compile(optimizer=Adam(lr=0.001), loss=[
-                           'categorical_crossentropy', 'mse'])
+        self.model.compile(optimizer=SGD(lr=0.01, clipvalue=0.2),
+            loss=['categorical_crossentropy', 'mse'])
         self.model.fit(
             states, [policy_targets, value_targets], batch_size=4000, epochs=10, shuffle='batch')
 
@@ -130,7 +130,7 @@ class AcAgent:
 
 
 def clip_probs(original_probs):
-    min_p = 0.001
+    min_p = 0.01
     max_p = 1 - min_p
     clipped_probs = np.clip(original_probs, min_p, max_p)
     clipped_probs = clipped_probs / np.sum(clipped_probs)
