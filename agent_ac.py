@@ -11,7 +11,7 @@ class AcExpCollector:
         self.states = []
         self.actions = []
         self.estimated_rewards = []
-        self.advantages = []
+        self.rewards = []
 
     def record(self, state, action, estimated_reward):
         self.states.append(state)
@@ -19,7 +19,7 @@ class AcExpCollector:
         self.estimated_rewards.append(estimated_reward)
 
     def assign_reward(self, reward):
-        self.advantages = [reward - e for e in self.estimated_rewards]
+        self.rewards = [reward] * len(self.actions)
 
     def save(self, h5file):
         h5file['experience'].create_dataset(
@@ -27,7 +27,7 @@ class AcExpCollector:
         h5file['experience'].create_dataset(
             'actions', data=np.array(self.actions))
         h5file['experience'].create_dataset(
-            'advantages', data=np.array(self.advantages))
+            'rewards', data=np.array(self.rewards))
         h5file['estimated_rewards'].create_dataset(
             'estimated_rewards', data=np.array(self.estimated_rewards))
 
@@ -36,7 +36,7 @@ class AcExpCollector:
         self.states = experience['states'][:]
         self.actions = experience['actions'][:]
         self.estimated_rewards = experience['estimated_rewards'][:]
-        self.advantages = experience['advantages'][:]
+        self.rewards = experience['rewards'][:]
 
 
 class AcAgent:
@@ -51,4 +51,4 @@ class AcAgent:
         self.model.compile(optimizer=Adam(lr=0.001), loss=[
                            'categorical_crossentropy', 'mse'])
         self.model.fit(
-            states, [policy_targets, value_targets], batch_size=4000, epochs=10)
+            states, [policy_targets, value_targets], batch_size=4000, epochs=10, shuffle='batch')
