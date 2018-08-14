@@ -65,7 +65,8 @@ class Agent:
             if move is None:
                 return None
             m, idx = move
-            self.collector.record(encoded, idx)
+            if self.collector is not None:
+                self.collector.record(encoded, idx)
             new_board = m.apply_move(game_state.board)
             self.encountered.add(str(new_board))
             for piece in new_board.pieces:
@@ -80,7 +81,8 @@ class Agent:
             if move is None:
                 return None
             m, idx = move
-            self.collector.record(encoded, idx)
+            if self.collector is not None:
+                self.collector.record(encoded, idx)
             new_board = m.apply_move(game_state.board)
             state = GameState(new_board, Player.black, game_state.steps + 1)
             self.encountered.add(str(new_board))
@@ -120,7 +122,8 @@ class Agent:
             candidates, len(candidates), replace=False, p=clip_probs(move_probs))
         uniform_moves = np.random.choice(
             candidates, len(candidates), replace=False)
-        ranked_moves = weighted_moves if np.random.uniform() >= explore_probs else uniform_moves
+        ranked_moves = weighted_moves if np.random.uniform(
+        ) >= explore_probs else uniform_moves
         valid_move = None
         for idx in reversed(ranked_moves):
             move = self.encoder.decode_move(state, idx)
