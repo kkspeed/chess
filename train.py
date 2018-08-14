@@ -5,6 +5,7 @@ import h5py
 
 from chess_types import Player
 
+
 def test(model1, model2):
     agent1 = agent.Agent(Player.red, agent.ExpCollector())
     if model1 is not None:
@@ -21,6 +22,7 @@ def test(model1, model2):
         if winner == Player.black:
             black += 1
     print("Red win %d, Black win %d" % (red, black))
+
 
 def debug_play(model1, model2):
     c1 = agent.ExpCollector()
@@ -43,7 +45,7 @@ def debug_play(model1, model2):
     h52.close()
 
 
-def train(epoch, model = None):
+def train(epoch, model=None):
     poly_agent = agent.Agent(Player.red, agent.ExpCollector())
     if model:
         poly_agent.model.load_weights(model)
@@ -58,7 +60,8 @@ def train(epoch, model = None):
     poly_agent.model.save_weights(new_model)
     return new_model
 
-def train_batch(epoch, model = None):
+
+def train_batch(epoch, model=None):
     import numpy as np
     poly_agent = agent.Agent(Player.red, agent.ExpCollector())
     if model:
@@ -77,6 +80,7 @@ def train_batch(epoch, model = None):
     new_model = "model_%s.h5" % epoch
     poly_agent.model.save_weights(new_model)
     return new_model
+
 
 if __name__ == "__main__":
     last_num = None
@@ -102,6 +106,3 @@ if __name__ == "__main__":
             agent2.encountered = set()
             agent.self_play(str(epoch), round, agent1, agent2)
         last_model = train_batch(str(epoch), last_model)
-    # test('model_10.h5', 'model_9.h5')
-    # for i in range(20):
-    #     debug_play("model_12.h5", "model_1.h5")

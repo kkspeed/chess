@@ -1,0 +1,34 @@
+from keras.models import Sequential, Model
+from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D, Input
+
+from encoder import TOTAL_MOVES
+
+STATE_SHAPE = (1, 10, 9)
+
+
+def create_model():
+    state = Input(shape=STATE_SHAPE, name='state')
+    state_encoding = Conv2D(32, kernel_size=(3, 3),
+                            activation='relu', input_shape=STATE_SHAPE,
+                            data_format='channels_first')(state)
+    state_encoding = Dropout(rate=0.6)(state_encoding)
+    state_encoding = Conv2D(64, (3, 3), activation='relu')(state_encoding)
+    state_encoding = MaxPooling2D(pool_size=(2, 2))(state_encoding)
+    state_encoding = Dropout(rate=0.6)(state_encoding)
+    state_encoding = Flatten()(state_encoding)
+    state_encoding = Dense(1024, activation='relu')(state_encoding)
+
+    policy_hidden_layer = Dense(128, activation='relu')(state_encoding)
+    policy_output = Dense(TOTAL_MOVES, activation='softmax')(
+        policy_hidden_layer)
+
+    value_hidden_layer = Dense(64, activation='relu')(state_encoding)
+    value_output = Dense(1, activation='tanh')(value_hidden_layer)
+
+    model = Model(inputs=[state], outputs=[policy_output, value_output])
+    return model
+
+
+if __name__ == '__main__':
+    model = create_model()
+    model.summary()
