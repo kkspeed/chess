@@ -428,6 +428,12 @@ class Move:
     def __str__(self):
         return "M"
 
+    def __hash__(self):
+        return hash((self.piece, self.target, type(self)))
+
+    def __eq__(self, other):
+        return self.piece == other.piece and self.target == other.target and type(self) == type(other)
+
 
 class KillMove(Move):
     def __init__(self, piece: Piece, target: Point, killed: Piece):
