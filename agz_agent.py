@@ -104,6 +104,7 @@ class ZeroAgent:
         self.encoder = SimpleEncoder()
         self.model = create_model()
         self.collector = collector
+        self.encountered = set()
 
     def select_branch(self, node: ZeroTreeNode) -> Move:
         total_n = node.total_visit_count
@@ -158,9 +159,12 @@ class ZeroAgent:
                             result.append(root.visit_count(move))
                     result = np.array(result) / sum(result)
                     self.collector.record(encoded_board, result)
-            move = max(root.moves(), key=root.visit_count)
-            new_board = move.apply_move(game_state.board)
-            return GameState(new_board, game_state.player.other(), game_state.steps + 1)
+            for move in sorted(root.moves(), key=root.visit_count, reverse=True):
+                new_board = move.apply_move(game_state.board)
+                if str(new_board) in self.encountered:
+                    continue
+                self.encountered.add(str(new_board))
+                return GameState(new_board, game_state.player.other(), game_state.steps + 1)
         return None
 
     def create_node(self, game_state: GameState, move=None, parent=None) -> ZeroTreeNode:

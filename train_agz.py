@@ -48,5 +48,7 @@ if __name__ == "__main__":
             agent2.model.load_weights(last_model)
         for round in range(1000):
             print("===\n\nPlaying epoch: %d, round %d\n\n===" % (epoch, round))
+            agent1.encountered = set()
+            agent2.encountered = set()
             agz_agent.self_play('agz_' + str(epoch), round, agent1, agent2)
         last_model = train_batch('agz_' + str(epoch), last_model)
