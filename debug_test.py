@@ -1,5 +1,6 @@
 import agent
 import agent_ac
+import agz_agent
 import os
 import sys
 import h5py
@@ -14,7 +15,10 @@ def create_agent(model, player: Player):
         a = agent_ac.AcAgent(player, None)
         a.model.load_weights(model)
         return a
-
+    if 'agz' in model:
+        a = agz_agent.ZeroAgent(player, None)
+        a.model.load_weights(model)
+        return a
     a = agent.Agent(player, None)
     a.model.load_weights(model)
     return a

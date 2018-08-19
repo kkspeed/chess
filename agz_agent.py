@@ -1,9 +1,45 @@
+import os
 import numpy as np
+import textwrap
+import h5py
 
-from chess_types import GameState, Move
+from keras.optimizers import SGD
+import copy
+
+from chess_types import GameState, Move, Player, Board, Point
 from encoder import SimpleEncoder
+import encoder
 from typing import List, Dict
 from model_ac import create_model
+
+
+class AgzExpCollector:
+    def __init__(self):
+        self.states = []
+        self.actions = []
+        self.rewards = []
+
+    def record(self, state, action):
+        self.states.append(state)
+        self.actions.append(action)
+
+    def assign_reward(self, reward):
+        self.rewards = [reward] * len(self.actions)
+
+    def save(self, h5file):
+        h5file.create_group('experience')
+        h5file['experience'].create_dataset(
+            'inputs', data=np.array(self.states))
+        h5file['experience'].create_dataset(
+            'actions', data=np.array(self.actions))
+        h5file['experience'].create_dataset(
+            'rewards', data=np.array(self.rewards))
+
+    def load(self, h5file):
+        experience = h5file.get('experience')
+        self.states = experience['inputs'][:]
+        self.actions = experience['actions'][:]
+        self.rewards = experience['rewards'][:]
 
 class Branch:
     def __init__(self, prior):
@@ -12,7 +48,9 @@ class Branch:
         self.total_value = 0.0
 
 class ZeroTreeNode:
-    def __init__(self, state: GameState, value, priors: Dict[Move, float], parent: ZeroTreeNode, last_move: Move):
+    def __init__(self, state: GameState, value, priors: Dict[Move, float],
+                 parent: 'ZeroTreeNode',
+                 last_move: Move):
         self.state = state
         self.value = value
         self.parent = parent
@@ -23,6 +61,9 @@ class ZeroTreeNode:
             self.branches[move] = Branch(p)
         self.children = {}
 
+    def has_move(self) -> bool:
+        return len(self.moves()) > 0
+
     def moves(self) -> List[Move]:
         return self.branches.keys()
 
@@ -32,7 +73,7 @@ class ZeroTreeNode:
     def has_child(self, move):
         return move in self.children
 
-    def get_child(self, move) -> ZeroTreeNode:
+    def get_child(self, move) -> 'ZeroTreeNode':
         return self.children[move]
 
     def expected_value(self, move: Move):
@@ -42,7 +83,7 @@ class ZeroTreeNode:
         return branch.total_value / branch.visit_count
 
     def prior(self, move: Move):
-        return self.branches[move].move
+        return self.branches[move].prior
 
     def visit_count(self, move):
         if move in self.branches:
@@ -56,14 +97,17 @@ class ZeroTreeNode:
 
 
 class ZeroAgent:
-    def __init__(self):
+    def __init__(self, player: Player, collector: AgzExpCollector=None):
+        self.player = player
         self.c = 0.3
-        self.num_rounds = 10
+        self.num_rounds = 160
         self.encoder = SimpleEncoder()
         self.model = create_model()
+        self.collector = collector
 
     def select_branch(self, node: ZeroTreeNode) -> Move:
         total_n = node.total_visit_count
+
         def score_branch(move):
             q = node.expected_value(move)
             p = node.prior(move)
@@ -72,17 +116,20 @@ class ZeroAgent:
         return max(node.moves(), key=score_branch)
 
     def select_move(self, game_state: GameState) -> GameState:
+        print("select move: ", game_state.player, game_state.steps)
+        print(str(game_state.board))
         root = self.create_node(game_state)
         # TODO: flip black / red sides when selecting move, revisiting exp collector
 
-        for i in range(self.num_rounds):
+        for _ in range(self.num_rounds):
             node = root
             next_move = self.select_branch(node)
             while node.has_child(next_move):
                 node = node.get_child(next_move)
                 next_move = self.select_branch(node)
             new_board = next_move.apply_move(node.state.board)
-            new_state = GameState(new_board, node.state.player.other(), node.state.steps + 1)
+            new_state = GameState(
+                new_board, node.state.player.other(), node.state.steps + 1)
             child_node = self.create_node(new_state, parent=None)
             move = next_move
             value = -1 * child_node.value
@@ -91,23 +138,126 @@ class ZeroAgent:
                 move = node.last_move
                 node = node.parent
                 value = -1 * value
-        move = max(root.moves(), key=root.visit_count)
-        return move.apply_move(game_state)
+
+        if root.has_move():
+            if self.collector is not None:
+                with game_state.board.flipped(game_state.player == Player.black) as board:
+                    result = []
+                    encoded_board = self.encoder.encode(board)
+                    for idx in range(encoder.TOTAL_MOVES):
+                        ds = GameState(board, Player.red)
+                        move = self.encoder.decode_move(ds, idx)
+                        if move is None:
+                            result.append(0.00000001)
+                        else:
+                            if game_state.player == Player.black:
+                                move.flip()
+                                move.piece = copy.deepcopy(move.piece)
+                                move.piece.pos = Point(9 - move.piece.pos.row, move.piece.pos.col)
+                                move.piece.color = Player.black
+                            result.append(root.visit_count(move))
+                    result = np.array(result) / sum(result)
+                    self.collector.record(encoded_board, result)
+            move = max(root.moves(), key=root.visit_count)
+            new_board = move.apply_move(game_state.board)
+            return GameState(new_board, game_state.player.other(), game_state.steps + 1)
+        return None
 
     def create_node(self, game_state: GameState, move=None, parent=None) -> ZeroTreeNode:
-        state_tensor = self.encoder.encode(game_state.board)
-        model_input = np.array([state_tensor])
-        priors, values = self.model.predict(model_input)
-        priors = priors[0]
-        value = values[0][0]
+        with game_state.board.flipped(game_state.player == Player.black) as board:
+            state_tensor = self.encoder.encode(board)
+            model_input = np.array([state_tensor])
+            priors, values = self.model.predict(model_input)
+            priors = priors[0]
+            value = values[0][0]
 
-        move_priors = {}
-        for idx, p in enumerate(priors):
-            move = self.encoder.decode_move(game_state, idx)
-            if move is not None:
-                move_priors[move] = p
+            move_priors = {}
+            for idx, p in enumerate(priors):
+                ds = GameState(board, Player.red, 0)
+                move = self.encoder.decode_move(ds, idx)
+                if move is not None:
+                    if game_state.player == Player.black:
+                        move.flip()
+                        move.piece = copy.deepcopy(move.piece)
+                        move.piece.pos = Point(9 - move.piece.pos.row, move.piece.pos.col)
+                        move.piece.color = Player.black
+                    if move is not None:
+                        move_priors[move] = p
 
         new_node = ZeroTreeNode(game_state, value, move_priors, parent, move)
         if parent is not None:
             parent.add_child(move, new_node)
         return new_node
+
+    def finish(self, reward):
+        self.collector.assign_reward(reward)
+
+    def train_batch(self, states, policy_targets, value_targets):
+        self.model.compile(optimizer=SGD(lr=0.01, clipvalue=0.2),
+            loss=['categorical_crossentropy', 'mse'])
+        self.model.fit(
+            states, [policy_targets, value_targets],
+            batch_size=4000, epochs=10, shuffle='batch')
+
+
+def game_play(agent1, agent2):
+    agent1.encountered = set()
+    agent2.encountered = set()
+    board = Board()
+    board.parse_from_string(textwrap.dedent("""\
+        車馬象仕将仕象馬車
+        .........
+        .包.....包.
+        卒.卒.卒.卒.卒
+        .........
+        .........
+        兵.兵.兵.兵.兵
+        .炮.....炮.
+        .........
+        车马相士帅士相马车"""))
+    game = GameState(board, Player.red)
+    winner = None
+
+    while game.winner() is None:
+        # print("Playing: ", game.steps)
+        game = agent1.select_move(game)
+        if game is None:
+            winner = Player.black
+            break
+        game = agent2.select_move(game)
+        if game is None:
+            winner = Player.red
+            break
+    if winner is None:
+        return game.winner()
+    return winner
+
+
+def self_play(episode, round, agent1, agent2):
+    if not os.path.exists(episode):
+        os.mkdir(episode)
+    collector1 = AgzExpCollector()
+    collector2 = AgzExpCollector()
+
+    agent2.collector = collector2
+    agent1.collector = collector1
+
+    winner = game_play(agent1, agent2)
+    if winner == Player.black:
+        print("Black win")
+        agent1.finish(-1)
+        agent2.finish(1)
+    if winner == Player.red:
+        print("Red win")
+        agent1.finish(1)
+        agent2.finish(-1)
+    if winner == -1:
+        agent1.finish(0)
+        agent2.finish(0)
+        print("It's draw %s - %d" % (episode, round))
+    file_path = os.path.join(episode, "agz_%s_1.h5" % round)
+    with h5py.File(file_path, 'w') as h51:
+        collector1.save(h51)
+    file_path = os.path.join(episode, "agz_%s_2.h5" % round)
+    with h5py.File(file_path, 'w') as h52:
+        collector2.save(h52)

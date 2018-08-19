@@ -4,6 +4,8 @@ import copy
 import enum
 
 
+BOARD_HEIGHT = 10
+
 class Player(enum.Enum):
     red = 1
     black = 2
@@ -373,6 +375,9 @@ class Board:
         """
         return MutableBoard(self)
 
+    def flipped(self, flip: bool) -> 'FlippedBoard':
+        return FlippedBoard(self, flip)
+
     def __str__(self):
         matrix = [['.' for c in range(self.width)]
                   for r in range(self.height)]
@@ -385,6 +390,27 @@ class Board:
 
     def __eq__(self, other):
         return str(self) == str(other)
+
+
+class FlippedBoard(Board):
+    def __init__(self, board: Board, do_flip: bool):
+        self.pieces = board.pieces
+        self.height = board.height
+        self.width = board.width
+        self.do_flip = do_flip
+
+    def __enter__(self):
+        if self.do_flip:
+            for p in self.pieces:
+                p.color = p.color.other()
+                p.pos = Point(self.height - p.pos.row - 1, p.pos.col)
+        return self
+
+    def __exit__(self, exception_type, exception_val, trace_back):
+        if self.do_flip:
+            for p in self.pieces:
+                p.color = p.color.other()
+                p.pos = Point(self.height - p.pos.row - 1, p.pos.col)
 
 
 class MutableBoard(Board):
@@ -424,6 +450,9 @@ class Move:
         index = result.pieces.index(self.piece)
         result.pieces[index].pos = self.target
         return result
+
+    def flip(self):
+        self.target = Point(BOARD_HEIGHT - self.target.row - 1, self.target.col)
 
     def __str__(self):
         return "M"
