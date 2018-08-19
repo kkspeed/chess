@@ -107,6 +107,16 @@ class AcAgent:
         ranked_moves = weighted_moves if np.random.uniform(
         ) >= explore_probs else uniform_moves
         valid_move = None
+
+        if state.steps <= 5:
+            for idx in ranked_moves:
+                move = self.encoder.decode_move(state, idx)
+                if move is not None:
+                    with state.board.mutable() as result_board:
+                        result_board.move_piece(move)
+                        if str(result_board) in self.encountered:
+                            continue
+                    return move, idx
         for idx in reversed(ranked_moves):
             move = self.encoder.decode_move(state, idx)
             if move is not None:
@@ -120,8 +130,8 @@ class AcAgent:
         return valid_move
 
     def train_batch(self, states, policy_targets, value_targets):
-        self.model.compile(optimizer=SGD(lr=0.01, clipvalue=0.2),
-            loss=['categorical_crossentropy', 'mse'])
+        self.model.compile(optimizer=SGD(lr=0.001, clipvalue=0.2),
+            loss=['categorical_crossentropy', 'mse'], loss_weights=[1.0, 0.5])
         self.model.fit(
             states, [policy_targets, value_targets], batch_size=4000, epochs=10, shuffle='batch')
 
