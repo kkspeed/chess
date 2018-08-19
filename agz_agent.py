@@ -65,7 +65,7 @@ class ZeroTreeNode:
         return len(self.moves()) > 0
 
     def moves(self) -> List[Move]:
-        return self.branches.keys()
+        return list(self.branches.keys())
 
     def add_child(self, move, child_node):
         self.children[move] = child_node
@@ -159,6 +159,14 @@ class ZeroAgent:
                             result.append(root.visit_count(move))
                     result = np.array(result) / sum(result)
                     self.collector.record(encoded_board, result)
+
+            exploration_prob = 0.5
+            if np.random.uniform() < exploration_prob and root.has_move():
+                idx = int(np.random.uniform(0, len(root.moves())))
+                move = root.moves()[idx]
+                new_board = move.apply_move(game_state.board)
+                return GameState(new_board, game_state.player.other(), game_state.steps + 1)
+
             for move in sorted(root.moves(), key=root.visit_count, reverse=True):
                 new_board = move.apply_move(game_state.board)
                 if str(new_board) in self.encountered:
