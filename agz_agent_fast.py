@@ -42,23 +42,23 @@ class AgzExpCollector:
         self.rewards = experience['rewards'][:]
 
 class Branch:
-    def __init__(self, prior):
+    def __init__(self, prior, idx):
         self.prior = prior
         self.visit_count = 0
         self.total_value = 0.0
+        self.idx = idx
 
 class ZeroTreeNode:
-    def __init__(self, state: GameState, value, priors: Dict[Move, float],
+    def __init__(self, value, priors: Dict[Move, (float, int)],
                  parent: 'ZeroTreeNode',
                  last_move: Move):
-        self.state = state
         self.value = value
         self.parent = parent
         self.last_move = last_move
         self.total_visit_count = 1
         self.branches: Dict[Move, Branch] = {}
         for move, p in priors.items():
-            self.branches[move] = Branch(p)
+            self.branches[move] = Branch(p[0], p[1])
         self.children = {}
 
     def has_move(self) -> bool:
@@ -119,78 +119,79 @@ class ZeroAgent:
     def select_move(self, game_state: GameState) -> GameState:
         print("select move: ", game_state.player, game_state.steps)
         print(str(game_state.board))
-        root = self.create_node(game_state)
+        root = self.create_node(game_state.board, game_state.player)
         # TODO: flip black / red sides when selecting move, revisiting exp collector
 
         for _ in range(self.num_rounds):
-            node = root
-            next_move = self.select_branch(node)
-            while node.has_child(next_move):
-                node = node.get_child(next_move)
+            with game_state.board.mutable() as board:
+                node = root
                 next_move = self.select_branch(node)
-            new_board = next_move.apply_move(node.state.board)
-            new_state = GameState(
-                new_board, node.state.player.other(), node.state.steps + 1)
-            child_node = self.create_node(new_state, parent=node, move=next_move)
-            move = next_move
-            value = -1 * child_node.value
-            while node is not None:
-                node.record_visit(move, value)
-                move = node.last_move
-                node = node.parent
-                value = -1 * value
+                board.move_piece(next_move)
+                player = game_state.player.other()
 
-        if root.has_move():
-            if self.collector is not None:
-                with game_state.board.flipped(game_state.player == Player.black) as board:
-                    result = []
-                    encoded_board = self.encoder.encode(board)
-                    for idx in range(encoder.TOTAL_MOVES):
-                        ds = GameState(board, Player.red)
-                        move = self.encoder.decode_move(ds, idx)
-                        if move is None:
-                            result.append(0.00000001)
-                        else:
-                            move = move.flip(game_state.player == Player.black)
-                            result.append(root.visit_count(move))
-                    result = np.array(result) / sum(result)
-                    self.collector.record(encoded_board, result)
+                while node.has_child(next_move):
+                    node = node.get_child(next_move)
+                    next_move = self.select_branch(node)
+                    board.move_piece(next_move)
+                    player = player.other()
+                board.move_piece(next_move) 
+                player = player.other()
+                child_node = self.create_node(board, player, parent=node, move=next_move)
+                move = next_move
+                value = -1 * child_node.value
+                while node is not None:
+                    node.record_visit(move, value)
+                    move = node.last_move
+                    node = node.parent
+                    value = -1 * value
+        
+        if not root.has_move():
+            return None
 
-            exploration_prob = 0.5
-            if np.random.uniform() < exploration_prob and root.has_move():
-                idx = int(np.random.uniform(0, len(root.moves())))
-                move = root.moves()[idx]
-                new_board = move.apply_move(game_state.board)
-                return GameState(new_board, game_state.player.other(), game_state.steps + 1)
+        if self.collector is not None:
+            with game_state.board.flipped(game_state.player == Player.black) as board:
+                result = [0.000001] * encoder.TOTAL_MOVES
+                encoded_board = self.encoder.encode(board)
+                for move in root.priors.keys():
+                    _, idx = root.priors[move]
+                    result[idx] = root.visit_count(move)
+                result = np.array(result) / sum(result)
+                self.collector.record(encoded_board, result)
 
-            for move in sorted(root.moves(), key=root.visit_count, reverse=True):
-                new_board = move.apply_move(game_state.board)
-                if str(new_board) in self.encountered:
-                    continue
-                self.encountered.add(str(new_board))
-                return GameState(new_board, game_state.player.other(), game_state.steps + 1)
+        exploration_prob = 0.5
+        if np.random.uniform() < exploration_prob and root.has_move():
+            idx = int(np.random.uniform(0, len(root.moves())))
+            move = root.moves()[idx]
+            new_board = move.apply_move(game_state.board)
+            return GameState(new_board, game_state.player.other(), game_state.steps + 1)
+
+        for move in sorted(root.moves(), key=root.visit_count, reverse=True):
+            new_board = move.apply_move(game_state.board)
+            if str(new_board) in self.encountered:
+                continue
+            self.encountered.add(str(new_board))
+            return GameState(new_board, game_state.player.other(), game_state.steps + 1)
         return None
 
-    def create_node(self, game_state: GameState, move=None, parent=None) -> ZeroTreeNode:
-        with game_state.board.flipped(game_state.player == Player.black) as board:
-            state_tensor = self.encoder.encode(board)
-            model_input = np.array([state_tensor])
+    def create_node(self, board: Board, player: Player, move=None, parent=None) -> ZeroTreeNode:
+        with board.flipped(player == Player.black) as flipped:
+            board_tensor = self.encoder.encode(board)
+            model_input = np.array([board_tensor])
             priors, values = self.model.predict(model_input)
             priors = priors[0]
             value = values[0][0]
 
             move_priors = {}
             for idx, p in enumerate(priors):
-                ds = GameState(board, Player.red, 0)
+                ds = GameState(flipped, Player.red, 0)
                 move = self.encoder.decode_move(ds, idx)
                 if move is not None:
-                    move = move.flip(game_state.player == Player.black)
-                    move_priors[move] = p
-
-        new_node = ZeroTreeNode(game_state, value, move_priors, parent, move)
-        if parent is not None:
-            parent.add_child(move, new_node)
-        return new_node
+                    move = move.flip(player == Player.black)
+                    move_priors[move] = (p, idx)
+            new_node = ZeroTreeNode(value, move_priors, parent, move)
+            if parent is not None:
+                parent.add_child(new_node)
+            return new_node
 
     def finish(self, reward):
         self.collector.assign_reward(reward)

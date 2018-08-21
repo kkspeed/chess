@@ -451,8 +451,13 @@ class Move:
         result.pieces[index].pos = self.target
         return result
 
-    def flip(self):
-        self.target = Point(BOARD_HEIGHT - self.target.row - 1, self.target.col)
+    def flip(self, do_flip: bool) -> Move:
+        move = copy.deepcopy(self)
+        if do_flip:
+            move.piece.pos = Point(BOARD_HEIGHT - move.piece.pos.row - 1, move.piece.pos.col)
+            move.piece.color = move.piece.color.other()
+            move.target = Point(BOARD_HEIGHT - move.target.row - 1, move.target.col)
+        return move
 
     def __str__(self):
         return "M"
@@ -473,6 +478,13 @@ class KillMove(Move):
         result = copy.deepcopy(board)
         result.pieces.remove(self.killed)
         return super().apply_move(result)
+
+    def flip(self, do_flip: bool) -> KillMove:
+        move = super().flip(do_flip)
+        if do_flip:
+            move.killed.pos = Point(BOARD_HEIGHT - 1 - move.killed.pos.row, move.killed.pos.col)
+            move.killed.color = move.killed.color.other()
+        return move
 
     def __str__(self):
         return "X"
