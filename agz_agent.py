@@ -156,12 +156,11 @@ class ZeroAgent:
                     result = np.array(result) / sum(result)
                     self.collector.record(encoded_board, result)
 
-            exploration_prob = 0.1
-            if np.random.uniform() < exploration_prob and root.has_move():
-                idx = int(np.random.uniform(0, len(root.moves())))
-                move = root.moves()[idx]
-                new_board = move.apply_move(game_state.board)
-                return GameState(new_board, game_state.player.other(), game_state.steps + 1)
+            # if np.random.uniform() < exploration_prob and root.has_move():
+            #     idx = int(np.random.uniform(0, len(root.moves())))
+            #     move = root.moves()[idx]
+            #     new_board = move.apply_move(game_state.board)
+            #     return GameState(new_board, game_state.player.other(), game_state.steps + 1)
 
             for move in sorted(root.moves(), key=root.visit_count, reverse=True):
                 new_board = move.apply_move(game_state.board)
@@ -177,6 +176,11 @@ class ZeroAgent:
             model_input = np.array([state_tensor])
             priors, values = self.model.predict(model_input)
             priors = priors[0]
+
+            exploration_prob = 0.1
+            if np.random.uniform() < exploration_prob:
+                priors = np.random.dirichlet(priors)
+
             value = values[0][0]
 
             move_priors = {}
