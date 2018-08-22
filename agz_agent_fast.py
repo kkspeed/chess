@@ -118,7 +118,7 @@ class ZeroAgent:
 
     def select_move(self, game_state: GameState) -> GameState:
         print("select move: ", game_state.player, game_state.steps)
-        print(str(game_state.board))
+        print(str(game_state.board).replace('.', '。'))
         root = self.create_node(game_state.board, game_state.player)
         # TODO: flip black / red sides when selecting move, revisiting exp collector
 

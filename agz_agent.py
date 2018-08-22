@@ -118,7 +118,7 @@ class ZeroAgent:
 
     def select_move(self, game_state: GameState) -> GameState:
         print("select move: ", game_state.player, game_state.steps)
-        print(str(game_state.board))
+        print(str(game_state.board).replace('.', '。'))
         root = self.create_node(game_state)
         # TODO: flip black / red sides when selecting move, revisiting exp collector
 
@@ -156,7 +156,7 @@ class ZeroAgent:
                     result = np.array(result) / sum(result)
                     self.collector.record(encoded_board, result)
 
-            exploration_prob = 0.5
+            exploration_prob = 0.1
             if np.random.uniform() < exploration_prob and root.has_move():
                 idx = int(np.random.uniform(0, len(root.moves())))
                 move = root.moves()[idx]
@@ -182,10 +182,10 @@ class ZeroAgent:
             move_priors = {}
             for idx, p in enumerate(priors):
                 ds = GameState(board, Player.red, 0)
-                move = self.encoder.decode_move(ds, idx)
-                if move is not None:
-                    move = move.flip(game_state.player == Player.black)
-                    move_priors[move] = p
+                mv = self.encoder.decode_move(ds, idx)
+                if mv is not None:
+                    mv = mv.flip(game_state.player == Player.black)
+                    move_priors[mv] = p
 
         new_node = ZeroTreeNode(game_state, value, move_priors, parent, move)
         if parent is not None:

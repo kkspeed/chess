@@ -439,6 +439,7 @@ class MutableBoard(Board):
             piece.pos = pos
             if isinstance(move, KillMove):
                 self.pieces.append(move.killed)
+                assert move.killed.pos == move.target
 
 
 class Move:

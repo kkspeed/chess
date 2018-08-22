@@ -1,6 +1,6 @@
 import agent
 import agent_ac
-import agz_agent
+import agz_agent_fast as agz_agent
 import os
 import sys
 import h5py
