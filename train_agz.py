@@ -46,7 +46,7 @@ if __name__ == "__main__":
         if last_model:
             agent1.model.load_weights(last_model)
             agent2.model.load_weights(last_model)
-        for round in range(1000):
+        for round in range(100):
             print("===\n\nPlaying epoch: %d, round %d\n\n===" % (epoch, round))
             agent1.encountered = set()
             agent2.encountered = set()
