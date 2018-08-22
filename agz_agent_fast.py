@@ -9,7 +9,7 @@ import copy
 from chess_types import GameState, Move, Player, Board, Point
 from encoder import SimpleEncoder
 import encoder
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from model_ac import create_model
 
 
@@ -49,14 +49,14 @@ class Branch:
         self.idx = idx
 
 class ZeroTreeNode:
-    def __init__(self, value, priors: Dict[Move, (float, int)],
+    def __init__(self, value, priors: Dict[Move, Tuple[float, int]],
                  parent: 'ZeroTreeNode',
                  last_move: Move):
         self.value = value
         self.parent = parent
         self.last_move = last_move
         self.total_visit_count = 1
-        self.branches: Dict[Move, Branch] = {}
+        self.branches = {}
         for move, p in priors.items():
             self.branches[move] = Branch(p[0], p[1])
         self.children = {}
@@ -134,9 +134,7 @@ class ZeroAgent:
                     next_move = self.select_branch(node)
                     board.move_piece(next_move)
                     player = player.other()
-                board.move_piece(next_move) 
-                player = player.other()
-                child_node = self.create_node(board, player, parent=node, move=next_move)
+                child_node = self.create_node(board, player, move=next_move, parent=node)
                 move = next_move
                 value = -1 * child_node.value
                 while node is not None:
@@ -152,8 +150,8 @@ class ZeroAgent:
             with game_state.board.flipped(game_state.player == Player.black) as board:
                 result = [0.000001] * encoder.TOTAL_MOVES
                 encoded_board = self.encoder.encode(board)
-                for move in root.priors.keys():
-                    _, idx = root.priors[move]
+                for move in root.branches.keys():
+                    idx = root.branches[move].idx
                     result[idx] = root.visit_count(move)
                 result = np.array(result) / sum(result)
                 self.collector.record(encoded_board, result)
@@ -184,13 +182,13 @@ class ZeroAgent:
             move_priors = {}
             for idx, p in enumerate(priors):
                 ds = GameState(flipped, Player.red, 0)
-                move = self.encoder.decode_move(ds, idx)
-                if move is not None:
-                    move = move.flip(player == Player.black)
-                    move_priors[move] = (p, idx)
+                mv = self.encoder.decode_move(ds, idx)
+                if mv is not None:
+                    mv = mv.flip(player == Player.black)
+                    move_priors[mv] = (p, idx)
             new_node = ZeroTreeNode(value, move_priors, parent, move)
-            if parent is not None:
-                parent.add_child(new_node)
+            if parent is not None and move is not None:
+                parent.add_child(move, new_node)
             return new_node
 
     def finish(self, reward):

@@ -114,7 +114,7 @@ class Piece:
         return str(self.__class__) < str(other.__class__)
 
     def __hash__(self):
-        return hash((self.color, self.pos, str(self.__class__)))
+        return hash((self.color, self.pos, str(self.__class__.__name__)))
 
 
 class 帅(Piece):
@@ -423,8 +423,9 @@ class MutableBoard(Board):
     def move_piece(self, move: 'Move'):
         self.moves.append((copy.copy(move.piece.pos), move))
         if type(move) is KillMove:
-            self.pieces.remove(move.killed)
-        piece = move.piece
+            piece = self.piece_at(move.killed.pos)
+            self.pieces.remove(piece)
+        piece = self.piece_at(move.piece.pos)
         piece.pos = move.target
 
     def __enter__(self):
@@ -442,6 +443,7 @@ class MutableBoard(Board):
 
 class Move:
     def __init__(self, piece: Piece, target: Point):
+        self.from_ = piece.pos
         self.piece = piece
         self.target = target
 
@@ -451,7 +453,7 @@ class Move:
         result.pieces[index].pos = self.target
         return result
 
-    def flip(self, do_flip: bool) -> Move:
+    def flip(self, do_flip: bool) -> 'Move':
         move = copy.deepcopy(self)
         if do_flip:
             move.piece.pos = Point(BOARD_HEIGHT - move.piece.pos.row - 1, move.piece.pos.col)
@@ -463,7 +465,7 @@ class Move:
         return "M"
 
     def __hash__(self):
-        return hash((self.piece, self.target, type(self)))
+        return hash((self.from_, str(self.piece), self.target, type(self)))
 
     def __eq__(self, other):
         return self.piece == other.piece and self.target == other.target and type(self) == type(other)
@@ -479,7 +481,7 @@ class KillMove(Move):
         result.pieces.remove(self.killed)
         return super().apply_move(result)
 
-    def flip(self, do_flip: bool) -> KillMove:
+    def flip(self, do_flip: bool) -> 'KillMove':
         move = super().flip(do_flip)
         if do_flip:
             move.killed.pos = Point(BOARD_HEIGHT - 1 - move.killed.pos.row, move.killed.pos.col)

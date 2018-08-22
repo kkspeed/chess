@@ -3,7 +3,7 @@ import sys
 import h5py
 
 from chess_types import Player
-import agz_agent
+import agz_agent_fast as agz_agent
 
 def train_batch(epoch, model=None):
     import numpy as np
