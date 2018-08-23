@@ -114,7 +114,9 @@ class ZeroAgent:
             p = node.prior(move)
             n = node.visit_count(move)
             return q + self.c * p * np.sqrt(total_n) / (n + 1)
-        return max(node.moves(), key=score_branch)
+        if node.has_move():
+            return max(node.moves(), key=score_branch)
+        return None
 
     def select_move(self, game_state: GameState) -> GameState:
         print("select move: ", game_state.player, game_state.steps)
@@ -125,9 +127,21 @@ class ZeroAgent:
         for _ in range(self.num_rounds):
             node = root
             next_move = self.select_branch(node)
-            while node.has_child(next_move):
+            if next_move is None:
+                return None
+            while next_move is not None and node.has_child(next_move):
                 node = node.get_child(next_move)
                 next_move = self.select_branch(node)
+            if next_move is None:
+                value = -1 * node.value
+                move = node.last_move
+                node = node.parent
+                while node is not None:
+                    node.record_visit(move, value)
+                    move = node.last_move
+                    node = node.parent
+                    value = -1 * value
+                continue
             new_board = next_move.apply_move(node.state.board)
             new_state = GameState(
                 new_board, node.state.player.other(), node.state.steps + 1)
@@ -161,13 +175,19 @@ class ZeroAgent:
             #     move = root.moves()[idx]
             #     new_board = move.apply_move(game_state.board)
             #     return GameState(new_board, game_state.player.other(), game_state.steps + 1)
-
+            has_skip = False
             for move in sorted(root.moves(), key=root.visit_count, reverse=True):
                 new_board = move.apply_move(game_state.board)
                 if str(new_board) in self.encountered:
+                    has_skip = True
                     continue
                 self.encountered.add(str(new_board))
                 return GameState(new_board, game_state.player.other(), game_state.steps + 1)
+            if has_skip:
+                # Skipped move is the only valid move, allow it.
+                for move in sorted(root.moves(), key=root.visit_count, reverse=True):
+                    new_board = move.apply_move(game_state.board)
+                    return GameState(new_board, game_state.player.other(), game_state.steps + 1)
         return None
 
     def create_node(self, game_state: GameState, move=None, parent=None) -> ZeroTreeNode:
@@ -229,10 +249,12 @@ def game_play(agent1, agent2):
         # print("Playing: ", game.steps)
         game = agent1.select_move(game)
         if game is None:
+            print("move is none for red")
             winner = Player.black
             break
         game = agent2.select_move(game)
         if game is None:
+            print("move is none for black")
             winner = Player.red
             break
     if winner is None:
