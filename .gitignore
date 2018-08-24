@@ -104,3 +104,4 @@ venv.bak/
 .mypy_cache/
 *.h5
 .vscode
+!agz_model_agz_8.h5

@@ -197,7 +197,7 @@ class ZeroAgent:
             priors, values = self.model.predict(model_input)
             priors = priors[0]
 
-            exploration_prob = 0.1
+            exploration_prob = 0.3
             if np.random.uniform() < exploration_prob:
                 priors = np.random.dirichlet(priors)
 
@@ -220,7 +220,7 @@ class ZeroAgent:
         self.collector.assign_reward(reward)
 
     def train_batch(self, states, policy_targets, value_targets):
-        self.model.compile(optimizer=SGD(lr=0.01, clipvalue=0.2),
+        self.model.compile(optimizer=SGD(lr=0.001, clipvalue=0.2),
             loss=['categorical_crossentropy', 'mse'])
         self.model.fit(
             states, [policy_targets, value_targets],
@@ -281,8 +281,8 @@ def self_play(episode, round, agent1, agent2):
         agent1.finish(1)
         agent2.finish(-1)
     if winner == -1:
-        agent1.finish(0)
-        agent2.finish(0)
+        agent1.finish(-1)
+        agent2.finish(-1)
         print("It's draw %s - %d" % (episode, round))
     file_path = os.path.join(episode, "agz_%s_1.h5" % round)
     with h5py.File(file_path, 'w') as h51:
