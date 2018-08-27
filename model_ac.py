@@ -1,5 +1,5 @@
 from keras.models import Sequential, Model
-from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D, Input 
+from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D, Input, ZeroPadding2D
 
 from encoder import TOTAL_MOVES
 
@@ -8,10 +8,12 @@ STATE_SHAPE = (1, 10, 9)
 
 def create_model():
     state = Input(shape=STATE_SHAPE, name='state')
+    state_encoding = ZeroPadding2D((3, 3), input_shape=STATE_SHAPE, data_format='channels_first')(state)
     state_encoding = Conv2D(32, kernel_size=(3, 3),
-                            activation='relu', input_shape=STATE_SHAPE,
-                            data_format='channels_first')(state)
+                            activation='relu', # input_shape=STATE_SHAPE,
+                            data_format='channels_first')(state_encoding)
     state_encoding = Dropout(rate=0.6)(state_encoding)
+    state_encoding = ZeroPadding2D((2, 2), data_format='channels_first')(state_encoding)
     state_encoding = Conv2D(64, (3, 3), activation='relu')(state_encoding)
     state_encoding = MaxPooling2D(pool_size=(2, 2))(state_encoding)
     state_encoding = Dropout(rate=0.6)(state_encoding)

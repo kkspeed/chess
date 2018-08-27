@@ -5,6 +5,9 @@ import h5py
 from chess_types import Player
 import agz_agent
 
+# Force CPU to generate game play to avoid racing for GPU resource.
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 if __name__ == "__main__":
     start_round = int(sys.argv[1])

@@ -99,8 +99,8 @@ class ZeroTreeNode:
 class ZeroAgent:
     def __init__(self, player: Player, collector: AgzExpCollector=None):
         self.player = player
-        self.c = 0.3
-        self.num_rounds = 160
+        self.c = 3
+        self.num_rounds = 200
         self.encoder = SimpleEncoder()
         self.model = create_model()
         self.collector = collector
@@ -197,7 +197,7 @@ class ZeroAgent:
             priors, values = self.model.predict(model_input)
             priors = priors[0]
 
-            exploration_prob = 0.3
+            exploration_prob = 0.4
             if np.random.uniform() < exploration_prob:
                 priors = np.random.dirichlet(priors)
 

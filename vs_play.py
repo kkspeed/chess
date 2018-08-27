@@ -8,6 +8,7 @@ from chess_types import Board, Player, GameState
 from encoder import SimpleEncoder
 from agent import ExpCollector, HumanAgent, Agent
 from agent_ac import AcAgent
+from agz_agent import ZeroAgent
 
 WHITE = (255, 255, 255)
 BOARD_COLOR = (0, 0, 0)
@@ -85,6 +86,8 @@ if __name__ == "__main__":
     computer = None
     if 'ac' in sys.argv[1]:
         computer = AcAgent(Player.black, None)
+    elif 'agz' in sys.argv[1]:
+        computer = ZeroAgent(Player.black, None)
     else:
         computer = Agent(Player.black, ExpCollector())
     computer.model.load_weights(sys.argv[1])
