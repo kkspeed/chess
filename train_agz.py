@@ -5,6 +5,7 @@ import h5py
 from chess_types import Player
 import agz_agent
 
+
 def train_batch(epoch, model=None):
     import numpy as np
     poly_agent = agz_agent.ZeroAgent(Player.red, None)
@@ -22,13 +23,40 @@ def train_batch(epoch, model=None):
             inputs.append(exp.states)
             target.append(exp.actions)
             rewards.append(exp.rewards)
-    poly_agent.train_batch(np.concatenate(inputs), np.concatenate(target), np.concatenate(rewards))
+    poly_agent.train_batch(np.concatenate(
+        inputs), np.concatenate(target), np.concatenate(rewards))
     new_model = "agz_model_%s.h5" % epoch
     poly_agent.model.save_weights(new_model)
     return new_model
 
 
+def train_on_folder(folder, model=None):
+    import numpy as np
+    poly_agent = agz_agent.ZeroAgent(Player.red, None)
+    if model:
+        poly_agent.model.load_weights(model)
+    inputs = []
+    target = []
+    rewards = []
+    for f in os.listdir(folder):
+        path = os.path.join(folder, f)
+        print('train on ', path)
+        with h5py.File(path, 'r') as h5:
+            exp = agz_agent.AgzExpCollector()
+            exp.load(h5)
+            inputs.append(exp.states)
+            target.append(exp.actions)
+            rewards.append(exp.rewards)
+    poly_agent.train_batch(np.concatenate(
+        inputs), np.concatenate(target), np.concatenate(rewards))
+    new_model = "agz_model_%s.h5" % folder
+    poly_agent.model.save_weights(new_model)
+
+
 if __name__ == "__main__":
+    if sys.argv[1] == "--folder":
+        train_on_folder(sys.argv[2])
+        exit(0)
     last_num = None
     if len(sys.argv) >= 2:
         last_num = int(sys.argv[1])
