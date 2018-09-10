@@ -66,5 +66,27 @@ class EncoderTest(unittest.TestCase):
         self.assertEqual(move_mask[4:8], [0, 0, 0, 0])
         self.assertEqual(move_mask[16:20], [0, 0, 0, 1])
 
+    def test_move_encode(self):
+        b = Board()
+        b.parse_from_string(textwrap.dedent("""\
+            ....将....
+            .........
+            .........
+            ......車..
+            .........
+            .........
+            兵........
+            ....相.车..
+            ....帅....
+            ..相士车...."""))
+        state = GameState(b, Player.black, 12)
+        encoder = SimpleEncoder()
+        move = Move(b.piece_at(Point(0, 4)), Point(1, 4))
+        index = encoder.move_to_index(state, move)
+        decoded_move = encoder.decode_move(state, index)
+        self.assertTrue(
+            move.piece == decoded_move.piece and move.target == decoded_move.target)
+
+
 if __name__ == "__main__":
     unittest.main()

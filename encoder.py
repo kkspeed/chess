@@ -95,6 +95,35 @@ class SimpleEncoder:
                     board.pieces.append(Piece.from_name(Point(row, col), ch))
         return board
 
+    def encode_move(self, state: GameState, move: Move):
+        result = np.zeros(TOTAL_MOVES)
+        index = self.move_to_index(state, move)
+        result[index] = 1
+        return result
+
+    def move_to_index(self, state: GameState, move: Move) -> int:
+        index = 0
+        candidates = sorted(
+            filter(lambda piece: piece.color == move.piece.color,
+                   state.board.pieces))
+        skip = 0
+        for c in candidates:
+            if c.name() == move.piece.name():
+                if c.pos != move.piece.pos:
+                    skip += 1
+                else:
+                    break
+
+        for name, step in MOVE:
+            if name != move.piece.name():
+                index += step
+            else:
+                index += skip * step
+                break
+
+        index += move.piece.possible_positions().index(move.target)
+        return index
+
     def decode_move(self, state: GameState, index: int) -> Move:
         start = 0
         passed = collections.defaultdict(int)
